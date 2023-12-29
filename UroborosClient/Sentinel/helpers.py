@@ -59,6 +59,14 @@ def parseCommand(command):
     return tree
 
 
+def showForbidden(server, username):
+    server.command(f'title {username} ' + 'times 20 40 20')
+    server.command(f'title {username} ' + 'subtitle {"text":"¿Habrá consecuencias?","italic":true,"color":"red"}')
+    server.command(f'execute at {username} run particle minecraft:sculk_soul ~ ~ ~ 1 1 1 0.1 500')
+    server.command(f'execute at {username} run playsound minecraft:ambient.cave ambient {username} ~ ~ ~ 100 0.75')
+    server.command(f'title {username} ' + 'title {"text":"ARTE PROHIBIDO","bold":true,"color":"red"}')
+
+
 def showSuccessEffects(server, username):
     server.command(f'title {username} ' + 'times 20 40 20')
     server.command(f'title {username} ' + 'subtitle ["",{"text":"Algo acaba de suceder","italic":true,"color":"gold"},{"text":"...","color":"gold"}]')
@@ -72,28 +80,42 @@ def showFailureEffect(server, username):
     server.command(f'title {username} ' + 'times 20 40 20')
     server.command(f'title {username} ' + 'subtitle {"text":"¿Quizás hichiste algo mal?","italic":true,"color":"gray"}')
     server.command(f'execute at {username} run particle minecraft:ash ~ ~ ~ 1 1 1 0.1 500')
-    server.command(f'execute at {username} run  playsound minecraft:ambient.cave ambient {username} ~ ~ ~ 0.1 0.5')
+    server.command(f'execute at {username} run playsound minecraft:ambient.soul_sand_valley.additions ambient {username} ~ ~ ~ 100 0.75')
     server.command(f'title {username} ' + 'title {"text":"Un débil brillo emana de tus manos.","color":"gray"}')
 
 
+def youAreAlone(server, username):
+    server.command(f'title {username} actionbar ' + '{"text":"Pero no vino nadie...","italic":true,"color":"gray"}')
+
+
 def gulliverSanitize(command):
-    forbbidden = {'diamond', 'beacon', 'wither', 'warden', 'enchant', 'op', 'gamemode', 'netherite'}
+    forbidden = {'diamond', 'beacon', 'wither', 'warden', 'enchant', 'op', 'gamemode', 'netherite'}
     words = command.lower().split(' ')
     args = []
     for w in words:
         args += w.split('_')
 
     for a in args:
-        if a in forbbidden:
+        if a in forbidden:
             return False
-        for f in forbbidden:
+        for f in forbidden:
             if f in a:
                 return False
 
     return True
 
 
+def assertCommand(commandRes):
+    errorHints = ['error', 'desconocido', 'incorrect', "can't", 'required', 'not']
+    for hint in errorHints:
+        if hint in commandRes:
+            return False
+    return True
+
+
 def runSystemCall(server, cmd, gameInfo, OAIClient):
+
+    # COMMAND PARSE TREE EXAMPLE
     # [('select sombra', ['get mindstate']), ('select gulliver', [('baritone', ['goal Stone'])])]
     # [('select gulliver', [('paper', ['kill QuesoBadasDabas'])])]
 
@@ -119,13 +141,10 @@ def runSystemCall(server, cmd, gameInfo, OAIClient):
             return False
         elif gulliverCmd[0] == 'paper':
             if not gulliverSanitize(gulliverCmd[1][0]):
-                print(f'Command: {gulliverCmd[1][0]} rejected', flush=True)
-                return False
+                print(f'Command: {gulliverCmd[1][0]} rejected')
+                return -1
             res = server.command(gulliverCmd[1][0])
-            print(res)
-            if 'error' in res.lower() or 'desconocido' in res.lower() or 'incorrect' in res.lower():
-                return False
-            return True
+            return assertCommand(res.lower())
 
     elif cmd[0] == 'select sombra':
         if cmd[1][0] == 'get mindstate':
@@ -169,7 +188,7 @@ def antinomy(gameInfo, OAIClient):
             taskSect = mind.find('Tarea:')
             taskString = mind[taskSect + 6:].removeprefix(' ').replace('.', '').lower()
 
-            print('====== [ANTINOMY CALL STATE] ======', file=f, flush=True)
+            print('====== [ANTINOMY CALL STATE] ======')
 
             print('[Puppeteer] Internal State:')
             print(promptString)
@@ -192,7 +211,7 @@ def antinomy(gameInfo, OAIClient):
                             anyChat = som.callEgo(egoPrompt, OAIClient)
                             anyChat = anyChat.removeprefix('Chat: ')
 
-                            print('[Ego] Voice:', file=f, flush=True)
+                            print('[Ego] Voice:')
                             print(anyChat)
                             comm.sendCommand('chat ' + anyChat)
                         else:
@@ -213,6 +232,7 @@ def parseCommands(server, logLines, listeners, gameInfo, OAIClient):
     msg = match.group(2)
 
     if username not in listeners:
+        youAreAlone(server, username)
         return
 
     try:
@@ -222,10 +242,14 @@ def parseCommands(server, logLines, listeners, gameInfo, OAIClient):
             showFailureEffect(server, username)
         for cmd in cmdList:
             res = runSystemCall(server, cmd, gameInfo, OAIClient)
-            if res:
+            if res == -1:
+                showForbidden(server, username)
+                listeners[username] = 4
+            elif res:
                 showSuccessEffects(server, username)
                 listeners[username] = (listeners[username] + 1) % 6
                 server.command(f'damage {username} {2**listeners[username]}')
+                print('Listeners log:', listeners)
             else:
                 showFailureEffect(server, username)
 

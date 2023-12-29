@@ -96,14 +96,15 @@ def main():
     completedTasks = deque(maxlen=10)
     failedTasks = deque(maxlen=15)
 
-    listeners = {'1s_n0Ne': 0,
+    listeners = {'Deltax10': 0,
+                 '1s_n0Ne': 0,
                  'TheAdminstrator': 0,
-                 'Deltax10': 0,
                  'QuesoBadasDabas': 0,
-                 'LordAngel1124': 0}
+                 'LordAngel1124': 0,
+                 'AiMisao': 0}
 
     # Rates
-    MAX_CALLS_PER_MINUTE = 10
+    MAX_CALLS_PER_MINUTE = 5
     CALLS_WINDOW = datetime.timedelta(minutes=1)
 
     # Initialize the calls registry
@@ -145,12 +146,11 @@ def main():
                     }
 
                     parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
-                    print(listeners)
 
-                    # if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
-                    #     gameInfo = antinomy(gameInfo, OAIClient)
-                    #     completedTasks = gameInfo['completedTasks']
-                    #     failedTasks = gameInfo['failedTasks']
+                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
+                        gameInfo = antinomy(gameInfo, OAIClient)
+                        completedTasks = gameInfo['completedTasks']
+                        failedTasks = gameInfo['failedTasks']
 
             previousContent = f.read()
             time.sleep(0.25)

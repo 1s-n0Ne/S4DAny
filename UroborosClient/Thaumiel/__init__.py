@@ -2,4 +2,4 @@ import sys
 import os
 
 cwd = os.getcwd()
-sys.path.append(cwd + '/Sentinel/')
+sys.path.append(cwd + '/Thaumiel/')

@@ -26,8 +26,9 @@ Debes seguir los siguientes lineamientos:
 2) Los bloques de minecraft no siempre droppean lo que son. Por ejemplo, la cobblestone se obtiene rompiendo piedra normal (stone).
 Así que si la tarea es minar cobblestone, mi objetivo es en realidad minar stone. usa tus conocimientos de minecraft para elegir los bloques correctos en los comandos que me sugieras.
 3) El argumento {block} en las funciones solo debe recibir nombres de bloques validos de minecraft.
-5) Es importante que no uses objetos abstractos en tus comandos como "goal house" o "mine tree 1".
-4) ¡Es completamente indispensable que no te desvíes del formato de respuesta!
+4) Es importante que no uses objetos abstractos en tus comandos como "goal house" o "mine tree 1".
+5) ¡Es completamente indispensable que no te desvíes del formato de respuesta!
+6) ¡Es completamente indispensable que las instrucciones que generes estén entre comillas!
 
 Solo debes responder en el formato a continuación:
 FORMATO DE RESPUESTA:
