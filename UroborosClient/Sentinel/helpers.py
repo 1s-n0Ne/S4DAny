@@ -1,7 +1,5 @@
-import sys
-import getopt
-import S4D_Any.Gulliver.Comms as comm
-import S4D_Any.Sombra.helpers as som
+import UroborosClient.Gulliver.Comms as comm
+import UroborosClient.Sombra.helpers as som
 
 import re
 
@@ -61,32 +59,44 @@ def parseCommand(command):
     return tree
 
 
-def passCommandToMinecraft(server, command):
-    server.stdin.write(bytes(command + '\r\n', 'ascii'))
-    server.stdin.flush()
-
-
 def showSuccessEffects(server, username):
-    passCommandToMinecraft(server, f'title {username} ' + 'times 20 40 20')
-    passCommandToMinecraft(server, f'title {username} ' + 'subtitle ["",{"text":"Algo acaba de suceder","italic":true,"color":"gold"},{"text":"...","color":"gold"}]')
-    passCommandToMinecraft(server, f'execute at {username} run particle minecraft:soul_fire_flame ~ ~ ~ 1 1 1 0.1 500')
-    passCommandToMinecraft(server, f'execute at {username} run playsound minecraft:block.beacon.activate voice {username}')
-    passCommandToMinecraft(server, f'execute at {username} run playsound minecraft:entity.firework_rocket.twinkle_far voice {username}')
-    passCommandToMinecraft(server, f'title {username} ' + 'title {"text":"Tus manos resplandecen","color":"gold"}')
+    server.command(f'title {username} ' + 'times 20 40 20')
+    server.command(f'title {username} ' + 'subtitle ["",{"text":"Algo acaba de suceder","italic":true,"color":"gold"},{"text":"...","color":"gold"}]')
+    server.command(f'execute at {username} run particle minecraft:soul_fire_flame ~ ~ ~ 1 1 1 0.1 500')
+    server.command(f'execute at {username} run playsound minecraft:block.beacon.activate voice {username}')
+    server.command(f'execute at {username} run playsound minecraft:entity.firework_rocket.twinkle_far voice {username}')
+    server.command(f'title {username} ' + 'title {"text":"Tus manos resplandecen","color":"gold"}')
 
 
 def showFailureEffect(server, username):
-    passCommandToMinecraft(server, f'title {username} ' + 'times 20 40 20')
-    passCommandToMinecraft(server, f'title {username} ' + 'subtitle {"text":"Quizas hichiste algo mal?","italic":true,"color":"gray"}')
-    passCommandToMinecraft(server, f'execute at {username} run particle minecraft:ash ~ ~ ~ 1 1 1 0.1 500')
-    passCommandToMinecraft(server, f'execute at {username} run  playsound minecraft:ambient.cave ambient {username} ~ ~ ~ 0.1 0.5')
-    passCommandToMinecraft(server, f'title {username} ' + 'title {"text":"Un debil brillo emana de tus manos.","color":"gray"}')
+    server.command(f'title {username} ' + 'times 20 40 20')
+    server.command(f'title {username} ' + 'subtitle {"text":"¿Quizás hichiste algo mal?","italic":true,"color":"gray"}')
+    server.command(f'execute at {username} run particle minecraft:ash ~ ~ ~ 1 1 1 0.1 500')
+    server.command(f'execute at {username} run  playsound minecraft:ambient.cave ambient {username} ~ ~ ~ 0.1 0.5')
+    server.command(f'title {username} ' + 'title {"text":"Un débil brillo emana de tus manos.","color":"gray"}')
+
+
+def gulliverSanitize(command):
+    forbbidden = {'diamond', 'beacon', 'wither', 'warden', 'enchant', 'op', 'gamemode', 'netherite'}
+    words = command.lower().split(' ')
+    args = []
+    for w in words:
+        args += w.split('_')
+
+    for a in args:
+        if a in forbbidden:
+            return False
+        for f in forbbidden:
+            if f in a:
+                return False
+
+    return True
 
 
 def runSystemCall(server, cmd, gameInfo, OAIClient):
     # [('select sombra', ['get mindstate']), ('select gulliver', [('baritone', ['goal Stone'])])]
     # [('select gulliver', [('paper', ['kill QuesoBadasDabas'])])]
-    # print(cmd)
+
     if cmd[0] == 'start ap':
         if not comm.anyIsAwake():
             return comm.sendCommand('start')
@@ -108,7 +118,13 @@ def runSystemCall(server, cmd, gameInfo, OAIClient):
                 return True
             return False
         elif gulliverCmd[0] == 'paper':
-            passCommandToMinecraft(server, gulliverCmd[1][0])
+            if not gulliverSanitize(gulliverCmd[1][0]):
+                print(f'Command: {gulliverCmd[1][0]} rejected', flush=True)
+                return False
+            res = server.command(gulliverCmd[1][0])
+            print(res)
+            if 'error' in res.lower() or 'desconocido' in res.lower() or 'incorrect' in res.lower():
+                return False
             return True
 
     elif cmd[0] == 'select sombra':
@@ -153,38 +169,37 @@ def antinomy(gameInfo, OAIClient):
             taskSect = mind.find('Tarea:')
             taskString = mind[taskSect + 6:].removeprefix(' ').replace('.', '').lower()
 
-            with open('logs/sombralatest.log', 'a') as f:
-                print('====== [ANTINOMY CALL STATE] ======', file=f, flush=True)
+            print('====== [ANTINOMY CALL STATE] ======', file=f, flush=True)
 
-                print('[Puppeteer] Internal State:', file=f, flush=True)
-                print(promptString, file=f, flush=True)
-                print('', file=f, flush=True)
+            print('[Puppeteer] Internal State:')
+            print(promptString)
+            print('')
 
-                print('[Sombra] MindState:', file=f, flush=True)
-                print(mind, file=f, flush=True)
-                print('', file=f, flush=True)
+            print('[Sombra] MindState:')
+            print(mind)
+            print('')
 
-                print('[Gulliver] Instructions:', file=f, flush=True)
-                print(instructions, file=f, flush=True)
-                print('', file=f, flush=True)
+            print('[Gulliver] Instructions:')
+            print(instructions)
+            print('')
 
-                try:
-                    commands = eval(instructions)
-                    if len(commands) > 0:
-                        for command in commands:
-                            if command == 'chat':
-                                egoPrompt = 'Chat log:\n' + '\n'.join(gameLinesBuffer) + '\n' + mind
-                                anyChat = som.callEgo(egoPrompt, OAIClient)
-                                anyChat = anyChat.removeprefix('Chat: ')
+            try:
+                commands = eval(instructions)
+                if len(commands) > 0:
+                    for command in commands:
+                        if command == 'chat':
+                            egoPrompt = 'Chat log:\n' + '\n'.join(gameLinesBuffer) + '\n' + mind
+                            anyChat = som.callEgo(egoPrompt, OAIClient)
+                            anyChat = anyChat.removeprefix('Chat: ')
 
-                                print('[Ego] Voice:', file=f, flush=True)
-                                print(anyChat, file=f, flush=True)
-                                comm.sendCommand('chat ' + anyChat)
-                            else:
-                                comm.sendCommand(command)
-                        gameInfo['completedTasks'].append(taskString)
-                except SyntaxError:
-                    gameInfo['failedTasks'].append(taskString)
+                            print('[Ego] Voice:', file=f, flush=True)
+                            print(anyChat)
+                            comm.sendCommand('chat ' + anyChat)
+                        else:
+                            comm.sendCommand(command)
+                    gameInfo['completedTasks'].append(taskString)
+            except SyntaxError:
+                gameInfo['failedTasks'].append(taskString)
 
     return gameInfo
 
@@ -202,12 +217,15 @@ def parseCommands(server, logLines, listeners, gameInfo, OAIClient):
 
     try:
         cmdList = parseCommand(msg)['system call']
+
         if len(cmdList) == 0:
             showFailureEffect(server, username)
         for cmd in cmdList:
             res = runSystemCall(server, cmd, gameInfo, OAIClient)
             if res:
                 showSuccessEffects(server, username)
+                listeners[username] = (listeners[username] + 1) % 6
+                server.command(f'damage {username} {2**listeners[username]}')
             else:
                 showFailureEffect(server, username)
 

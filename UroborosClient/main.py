@@ -1,17 +1,12 @@
 import time
 import re
-import threading
 from openai import OpenAI
 
-import sys
-print(sys.path)
-
 from collections import deque
-import subprocess
 
-from Sentinel.helpers import parseCommands, passCommandToMinecraft, antinomy
+from Sentinel.helpers import parseCommands, antinomy
 import datetime
-# KEY = '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'
+from mcrcon import MCRcon
 
 
 def FilterAny(content: str, info_pattern, chat_pattern, FirstTime):
@@ -81,24 +76,7 @@ def GetNewLines(content: str, info_pattern, chat_pattern, FirstTime, extractGrou
     return FirstTime, newLogLines
 
 
-def handleServer(server):
-    while True:
-        command = input('')
-        if command:
-            passCommandToMinecraft(server, command)
-            if command == 'stop':
-                return
-
-
 def main():
-    server = subprocess.Popen('./Sentinel/start.sh', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    inputThread = threading.Thread(target=handleServer, args=(server,), daemon=True)
-
-    print('Opening server...')
-    time.sleep(5)
-    inputThread.start()
-    print('Server Ready!')
-
     previousContent = ''
 
     system_info_pattern = re.compile(
@@ -118,7 +96,11 @@ def main():
     completedTasks = deque(maxlen=10)
     failedTasks = deque(maxlen=15)
 
-    listeners = ['1s_n0Ne', 'TheAdminstrator', 'Deltax10', 'QuesoBadasDabas', 'LordAngel1124']
+    listeners = {'1s_n0Ne': 0,
+                 'TheAdminstrator': 0,
+                 'Deltax10': 0,
+                 'QuesoBadasDabas': 0,
+                 'LordAngel1124': 0}
 
     # Rates
     MAX_CALLS_PER_MINUTE = 10
@@ -131,24 +113,24 @@ def main():
     OAIClient = OpenAI()
     print('Backend started!')
 
-    print('Starting Sombra log file.')
-    with open('logs/sombralatest.log', 'w+') as f:
-        f.write('')
-    print('Starting log started.')
+    print('Starting RCON connection')
+    severRCON = MCRcon('localhost', 'D4rAlt3')
+    severRCON.connect()
+    severRCON.timeout = 100
+    print('RCON connected')
+    with open('/home/isa/Documents/PanalandMaster/logs/latest.log') as f:
+        # Preload buffer so there is loading time.
+        content = f.read()
 
-    with open('/home/isa/GitRepos/PanalandDev_1.20.1/logs/latest.log') as f:
         # Always read the server console.
-        while server.poll() is None:
+        while True:
             content = f.read()
+
             if previousContent in content:
                 content.replace(previousContent, '')
 
                 # New lines in the console
                 if content != '':
-                    print('\r', end='')
-                    print(content, end='')
-                    print('> ', end='')
-
                     anyFiltered = FilterAny(content, game_info_pattern, chat_pattern, FirstTime)
                     _, gameLines = GetNewLines(content, game_info_pattern, chat_pattern, FirstTime, 1)
                     FirstTime, logLines = GetNewLines(content, system_info_pattern, chat_pattern, FirstTime, 2)
@@ -162,12 +144,13 @@ def main():
                         'failedTasks': failedTasks
                     }
 
-                    parseCommands(server, gameLines, listeners, gameInfo, OAIClient)
+                    parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
+                    print(listeners)
 
-                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
-                        gameInfo = antinomy(gameInfo, OAIClient)
-                        completedTasks = gameInfo['completedTasks']
-                        failedTasks = gameInfo['failedTasks']
+                    # if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
+                    #     gameInfo = antinomy(gameInfo, OAIClient)
+                    #     completedTasks = gameInfo['completedTasks']
+                    #     failedTasks = gameInfo['failedTasks']
 
             previousContent = f.read()
             time.sleep(0.25)
