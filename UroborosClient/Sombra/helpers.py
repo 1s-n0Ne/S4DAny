@@ -1,0 +1,98 @@
+def sombraMindState(promptString, OpenAIClient):
+    # prompt = ''
+    with open('Sombra/prompts/sombraCurriculum.txt', 'r') as promptFile:
+        prompt = promptFile.read()
+
+    with open('logs/sombralatest.log', 'a') as f:
+        print('[SOMBRA] Calling OpenAI backend', file=f)
+
+    response = OpenAIClient.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+            {
+                "role": "user",
+                "content": promptString
+            }
+        ],
+        temperature=1,
+        max_tokens=3902,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    return response.choices[0].message.content
+
+
+def executiveFunction(promptString, OpenAIClient):
+    # prompt = ''
+    with open('Sombra/prompts/gulliverPuppeteer.txt', 'r') as promptFile:
+        prompt = promptFile.read()
+
+    generatedMindState = sombraMindState(promptString, OpenAIClient)
+
+    stateStart = promptString.find('Bioma:')
+    stateString = '\n'.join(promptString[stateStart:].splitlines()[:-2])
+
+    t = stateString + '\n' + generatedMindState
+    generatedMindState = "".join([s for s in t.strip().splitlines(True) if s.strip()])
+
+    with open('logs/sombralatest.log', 'a') as f:
+        print('[GULLIVER] Calling OpenAI backend', file=f)
+
+    response = OpenAIClient.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+            {
+                "role": "user",
+                "content": generatedMindState
+            }
+        ],
+        temperature=1,
+        max_tokens=3902,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    instructions = response.choices[0].message.content
+    return '\n'.join(generatedMindState.splitlines()[-2:]), instructions
+
+
+def callEgo(promptString, OpenAIClient):
+    # prompt = ''
+    with open('Sombra/prompts/anyInABottle.txt', 'r') as promptFile:
+        prompt = promptFile.read()
+
+    with open('logs/sombralatest.log', 'a') as f:
+        print('[EGO] Calling OpenAI backend', file=f)
+
+    response = OpenAIClient.chat.completions.create(
+        model="gpt-4-1106-preview",
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+            {
+                "role": "user",
+                "content": promptString
+            }
+        ],
+        temperature=1,
+        max_tokens=3902,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+
+    anyChat = response.choices[0].message.content
+    return anyChat
