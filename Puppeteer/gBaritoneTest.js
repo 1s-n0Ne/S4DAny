@@ -71,14 +71,14 @@ app.post('/Command', async (req, res) => {
         }
         if (args[0] === 'randomwalk') {
             botBusy = true
-            while (!await randomExplorer(16,32)) { /* empty */ }
+            // while (!await randomExplorer(16,32)) { /* empty */ }
             botBusy = false
         }
         if (args[0] === 'mine') {
             botBusy = true
-            let items = []
-            for (let i = 1; i < args.length-1; i++) items.push(args[i])
-            await mine(items, args.at(-1))
+            // let items = []
+            // for (let i = 1; i < args.length-1; i++) items.push(args[i])
+            // await mine(items, args.at(-1))
             botBusy = false
         }
         if (args[0] === 'state') {
@@ -87,7 +87,7 @@ app.post('/Command', async (req, res) => {
         }
         if (args[0] === 'hunt') {
             botBusy = true
-            await huntMob(args[1])
+            // await huntMob(args[1])
             botBusy = false
         }
     }

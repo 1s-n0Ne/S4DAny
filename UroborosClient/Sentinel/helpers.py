@@ -7,6 +7,7 @@ import re
 def parsel3(module, phrase):
     rawP = phrase
     phrase = phrase.lower()
+    print(phrase)
 
     if module == 'ego':
         if phrase == 'trigger response':
@@ -14,8 +15,8 @@ def parsel3(module, phrase):
         if re.match(r"get (\w+) perception", phrase):
             return phrase
     elif module == 'sombra':
-        if phrase.lower() == 'get mindstate':
-            return phrase.lower()
+        if phrase.replace('.', '') in ['get mindstate', 'enable', 'disable']:
+            return phrase
     elif module == 'gulliver':
         gulliverPrefixes = ['baritone', 'impact', 'paper', 'minecraft']
         for prefix in gulliverPrefixes:
@@ -119,6 +120,8 @@ def runSystemCall(server, cmd, gameInfo, OAIClient):
     # [('select sombra', ['get mindstate']), ('select gulliver', [('baritone', ['goal Stone'])])]
     # [('select gulliver', [('paper', ['kill QuesoBadasDabas'])])]
 
+    print(cmd)
+
     if cmd[0] == 'start ap':
         if not comm.anyIsAwake():
             return comm.sendCommand('start')
@@ -159,10 +162,30 @@ def runSystemCall(server, cmd, gameInfo, OAIClient):
                     promptString += 'Tareas fallidas que son muy complicadas: ' + ', '.join(failedTasks)
 
                     res = som.sombraMindState(promptString, OAIClient)
-                    for resLine in res.splitlines():
-                        comm.sendCommand('chat '+resLine)
 
+                    dumpHeader = 'tellraw @a ["",{"text":"===","bold":true,"color":"blue"},{"text":" SOMBRA MINDSTATE DUMP"},{"text":" ===","bold":true,"color":"blue"},{"text":"\\n "}]'
+                    dumpFoot = 'tellraw @a ["",{"text":"=========================","bold":true,"color":"blue"},{"text":"\\n "}]'
+
+                    server.command(dumpHeader)
+                    for line in res.splitlines():
+                        dumpLine = 'tellraw @a {"text":"{' + line + '} \\n"}'
+                        server.command(dumpLine)
+                    server.command(dumpFoot)
                     return True
+
+        elif cmd[1][0] == 'enable':
+            if gameInfo['sombraState']:
+                return False
+            else:
+                gameInfo['sombraState'] = True
+                return True
+        elif cmd[1][0] == 'disable':
+            if not gameInfo['sombraState']:
+                return False
+            else:
+                gameInfo['sombraState'] = False
+                return True
+
         return False
 
     elif cmd[0] == 'select ego':
@@ -219,8 +242,6 @@ def antinomy(gameInfo, OAIClient):
                     gameInfo['completedTasks'].append(taskString)
             except SyntaxError:
                 gameInfo['failedTasks'].append(taskString)
-
-    return gameInfo
 
 
 def parseCommands(server, logLines, listeners, gameInfo, OAIClient):

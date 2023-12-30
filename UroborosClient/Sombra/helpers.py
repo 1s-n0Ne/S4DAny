@@ -6,7 +6,8 @@ def sombraMindState(promptString, OpenAIClient):
     print('[SOMBRA] Calling OpenAI backend')
 
     response = OpenAIClient.chat.completions.create(
-        model="gpt-4-1106-preview",
+        # model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         messages=[
             {
                 "role": "system",
@@ -17,7 +18,7 @@ def sombraMindState(promptString, OpenAIClient):
                 "content": promptString
             }
         ],
-        temperature=1,
+        temperature=0.2,
         max_tokens=1500,
         top_p=1,
         frequency_penalty=0,
@@ -73,7 +74,8 @@ def callEgo(promptString, OpenAIClient):
     print('[EGO] Calling OpenAI backend')
 
     response = OpenAIClient.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        # model="gpt-3.5-turbo-1106",
+        model="gpt-4-1106-preview",
         messages=[
             {
                 "role": "system",
@@ -84,7 +86,7 @@ def callEgo(promptString, OpenAIClient):
                 "content": promptString
             }
         ],
-        temperature=0.35,
+        temperature=0.75,
         max_tokens=500,
         top_p=1,
         frequency_penalty=0,

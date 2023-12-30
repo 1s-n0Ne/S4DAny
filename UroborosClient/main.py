@@ -1,11 +1,13 @@
 import time
 import re
 import os
+import traceback
 from openai import OpenAI
 
 from collections import deque
 
 from Sentinel.helpers import parseCommands, antinomy
+from Thaumiel.Observer import BelugaKey, Guardian
 import datetime
 from mcrcon import MCRcon
 
@@ -78,8 +80,6 @@ def GetNewLines(content: str, info_pattern, chat_pattern, FirstTime, extractGrou
 
 
 def main():
-    previousContent = ''
-
     system_info_pattern = re.compile(
         r'^\[\d{2}:\d{2}:\d{2}] \[Server thread/INFO]: (?:\[(Not Secure)] )?(.*)$',
         re.MULTILINE)
@@ -90,12 +90,16 @@ def main():
         r'^\[\d{2}:\d{2}:\d{2}] \[Async Chat Thread - #\d+/INFO]: (?:\[(Not Secure)] )?(<[^>]+> .*)$',
         re.MULTILINE)
 
-    FirstTime = True
-    gameLinesBuffer = deque(maxlen=20)
-    logLinesBuffer = deque(maxlen=20)
+    FirstTime = False
 
-    completedTasks = deque(maxlen=10)
-    failedTasks = deque(maxlen=15)
+    gameInfo = {
+        'logLinesBuffer': deque(maxlen=20),
+        'gameLinesBuffer': deque(maxlen=20),
+        'completedTasks': deque(maxlen=10),
+        'failedTasks': deque(maxlen=15),
+        'sombraState': False,
+        'enmaCaptured': True
+    }
 
     listeners = {'Deltax10': 0,
                  '1s_n0Ne': 0,
@@ -120,11 +124,10 @@ def main():
     severRCON.connect()
     severRCON.timeout = 100
     print('RCON connected')
-    with open('/home/isa/Documents/PanalandMaster/logs/latest.log') as f:
-        # Preload buffer so there is loading time.
-        content = f.read()
-
+    with open('../Server/logs/latest.log') as f:
         # Always read the server console.
+        previousContent = f.read()
+
         while True:
             content = f.read()
 
@@ -137,25 +140,27 @@ def main():
                     _, gameLines = GetNewLines(content, game_info_pattern, chat_pattern, FirstTime, 1)
                     FirstTime, logLines = GetNewLines(content, system_info_pattern, chat_pattern, FirstTime, 2)
 
-                    gameLinesBuffer.extend(gameLines)
-                    logLinesBuffer.extend(logLines)
+                    gameInfo['gameLinesBuffer'].extend(gameLines)
+                    gameInfo['logLinesBuffer'].extend(logLines)
 
-                    gameInfo = {
-                        'gameLinesBuffer': gameLinesBuffer,
-                        'completedTasks': completedTasks,
-                        'failedTasks': failedTasks
-                    }
+                    try:
+                        parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
+                        Guardian(severRCON, gameLines)
+                        BelugaKey(severRCON, gameLines, gameInfo)
+                    except Exception:
+                        traceback.print_exc()
 
-                    parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
-
-                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
-                        gameInfo = antinomy(gameInfo, OAIClient)
-                        completedTasks = gameInfo['completedTasks']
-                        failedTasks = gameInfo['failedTasks']
+                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE) and gameInfo['sombraState']:
+                        # Antinomy not ready
+                        # antinomy(gameInfo, OAIClient)
+                        pass
 
             previousContent = f.read()
             time.sleep(0.25)
 
 
 if __name__ == '__main__':
+    cwd = os.getcwd()
+    import sys
+    sys.path.append(cwd + '/..')
     main()
