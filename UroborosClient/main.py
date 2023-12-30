@@ -1,6 +1,11 @@
 import time
 import re
 import os
+import sys
+
+cwd = os.getcwd()
+sys.path.append(cwd + '/..')
+
 import traceback
 from openai import OpenAI
 
@@ -160,7 +165,4 @@ def main():
 
 
 if __name__ == '__main__':
-    cwd = os.getcwd()
-    import sys
-    sys.path.append(cwd + '/..')
     main()
