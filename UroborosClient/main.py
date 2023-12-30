@@ -1,5 +1,6 @@
 import time
 import re
+import os
 from openai import OpenAI
 
 from collections import deque
@@ -115,7 +116,7 @@ def main():
     print('Backend started!')
 
     print('Starting RCON connection')
-    severRCON = MCRcon('localhost', 'D4rAlt3')
+    severRCON = MCRcon('localhost', os.environ['RCON_PASSWORD'])
     severRCON.connect()
     severRCON.timeout = 100
     print('RCON connected')
