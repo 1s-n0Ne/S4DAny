@@ -12,7 +12,7 @@ from openai import OpenAI
 from collections import deque
 
 from Sentinel.helpers import parseCommands, antinomy
-from Thaumiel.Observer import BelugaKey, Guardian
+from Thaumiel.Observer import Guardian
 import datetime
 from mcrcon import MCRcon
 
@@ -151,7 +151,6 @@ def main():
                     try:
                         parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
                         Guardian(severRCON, gameLines)
-                        BelugaKey(severRCON, gameLines, gameInfo)
                     except Exception:
                         traceback.print_exc()
 
