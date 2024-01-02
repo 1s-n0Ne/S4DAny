@@ -12,7 +12,10 @@ PLAYER_WHITELIST = [
     'QuesoBadasDabas',
     'Deltax10',
     'LordAngel1124',
-    'TheAdminstrator'
+    'TheAdminstrator',
+    'Diegloria',
+    'Xerachu',
+    'Joseph8123'
 ]
 
 
