@@ -106,12 +106,13 @@ def main():
         'enmaCaptured': True
     }
 
-    listeners = {'Deltax10': 0,
-                 '1s_n0Ne': 0,
-                 'TheAdminstrator': 0,
-                 'QuesoBadasDabas': 0,
-                 'LordAngel1124': 0,
-                 'AiMisao': 0}
+    listeners = {#'Deltax10': 0,
+                 #'1s_n0Ne': 0,
+                 'TheAdminstrator': 0
+                 #'QuesoBadasDabas': 0,
+                 #'LordAngel1124': 0,
+                 #'AiMisao': 0
+                }
 
     # Rates
     MAX_CALLS_PER_MINUTE = 5
