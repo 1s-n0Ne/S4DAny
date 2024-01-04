@@ -108,10 +108,10 @@ def main():
 
     listeners = {#'Deltax10': 0,
                  #'1s_n0Ne': 0,
-                 'TheAdminstrator': 0
+                 'TheAdminstrator': 0,
                  #'QuesoBadasDabas': 0,
                  #'LordAngel1124': 0,
-                 #'AiMisao': 0
+                 'AiMisao': 0
                 }
 
     # Rates
