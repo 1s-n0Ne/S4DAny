@@ -15,7 +15,8 @@ PLAYER_WHITELIST = [
     'TheAdminstrator',
     'Diegloria',
     'Xerachu',
-    'Joseph8123'
+    'Joseph8123',
+    'n0Ne5060'
 ]
 
 
