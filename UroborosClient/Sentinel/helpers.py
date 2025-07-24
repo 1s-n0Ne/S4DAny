@@ -252,12 +252,15 @@ def parseCommands(server, logLines, listeners, gameInfo, OAIClient):
     username = match.group(1)
     msg = match.group(2)
 
+    print(f"This is a command: {msg}")
+
     if username not in listeners:
         youAreAlone(server, username)
         return
 
     try:
         cmdList = parseCommand(msg)['system call']
+        print(cmdList)
 
         if len(cmdList) == 0:
             showFailureEffect(server, username)

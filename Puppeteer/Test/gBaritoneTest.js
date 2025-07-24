@@ -64,7 +64,7 @@ app.post('/Command', async (req, res) => {
             botGoto(x, y, z)
         }
         if (args[0] === 'goal') {
-            gotoBlock(args[1])
+            gotoBlock(args[Par1])
         }
         if (args[0] === 'follow') {
             followPlayer(args[1])

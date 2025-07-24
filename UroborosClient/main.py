@@ -155,10 +155,12 @@ def main():
                     except Exception:
                         traceback.print_exc()
 
-                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE) and gameInfo['sombraState']:
+                    print(anyFiltered)
+
+                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
                         # Antinomy not ready
-                        # antinomy(gameInfo, OAIClient)
-                        pass
+                        antinomy(gameInfo, OAIClient)
+                        #pass
 
             previousContent = f.read()
             time.sleep(0.25)
