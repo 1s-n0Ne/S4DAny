@@ -4,7 +4,6 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/S4D_Any/Sombra/prompts" />
-      <excludeFolder url="file://$MODULE_DIR$/UroborosClient/Sombra/prompts" />
       <excludeFolder url="file://$MODULE_DIR$/Server" />
       <excludeFolder url="file://$MODULE_DIR$/ADData" />
       <excludeFolder url="file://$MODULE_DIR$/eBackup_2024-01-09_21-00-00" />

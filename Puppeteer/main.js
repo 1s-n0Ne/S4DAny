@@ -2,6 +2,7 @@ const mineflayer = require('mineflayer')
 const {pathfinder, Movements, goals} = require('mineflayer-pathfinder')
 const pvp = require('mineflayer-pvp').plugin
 const autoEat = require('mineflayer-auto-eat').loader
+//const mineflayerViewer = require('prismarine-viewer').mineflayer
 
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -108,10 +109,14 @@ const bot_options = {
     logErrors: true
 }
 
+// Bot data
 let bot
 let mcData, movements
 
+// Bot inner timer
 let lastActivityTime = Date.now()
+
+// Wandering behaviour state
 let isWandering = false
 let wanderingStartTime = 0
 let targetMob = null
@@ -119,6 +124,12 @@ let targetMob = null
 // Item pickup behavior state
 let isPickingUpItem = false
 let targetItem = null
+
+// Combat behavior state
+let isInCombat = false
+let isRetreating = false
+let combatTarget = null
+let retreatStartTime = 0
 
 const initBot = () => {
     bot = mineflayer.createBot(bot_options)
@@ -160,6 +171,8 @@ const initBot = () => {
             priority: 'saturation'
         })
 
+        //mineflayerViewer(bot, { port: 3007 , firstPerson: true})
+
         bot._client.removeAllListeners('explosion');
         bot._client.on('explosion', (packet) => {
             try {
@@ -194,7 +207,6 @@ const initBot = () => {
         if (message.includes('health')) {
             bot.chat(`\nHealth: ${bot.health}\nHunger: ${bot.food}`)
         }
-
     })
 
     bot.on('physicsTick', async () => {
@@ -261,6 +273,11 @@ const PASSIVE_MOBS = [
     'llama', 'cat', 'wolf', 'parrot', 'turtle', 'panda', 'fox', 'bee',
     'axolotl', 'goat', 'frog', 'villager', 'wandering_trader'
 ]
+
+const COMBAT_RANGE = 5
+const RETREAT_HEALTH_THRESHOLD = 6 // Retreat when health is 3 hearts or below
+const RETREAT_DISTANCE = 15 // How far to retreat
+const RETREAT_DURATION = 10000 // Retreat for 10 seconds before reassessing
 
 function getArmorType(itemName) {
     if (itemName.includes('helmet')) return 'helmet'
@@ -379,8 +396,27 @@ async function checkAndUpgradeArmor(bot) {
 }
 
 async function equipSword() {
-    const sword = bot.inventory.items().find( item => item.name.includes('sword'))
-    if (sword) await bot.equip(sword, 'hand')
+    // This should equip the best sword available
+    const swords = bot.inventory.items().filter(item =>
+        item.name.includes('sword')
+    )
+
+    if (swords.length > 0) {
+        // Sort by material quality (you can customize this)
+        console.log(`There are ${swords.length} swords in the inventory`)
+        const swordPriority = {
+            'netherite_sword': 5,
+            'diamond_sword': 4,
+            'iron_sword': 3,
+            'golden_sword': 2,
+            'stone_sword': 1,
+            'wooden_sword': 0
+        }
+
+        swords.sort((a, b) => (swordPriority[b.name] || 0) - (swordPriority[a.name] || 0))
+        console.log(`Equiping ${swords[0].name}`)
+        await bot.equip(swords[0], 'hand')
+    }
 }
 
 async function equipShield() {
@@ -496,12 +532,169 @@ async function handleItemPickup(bot) {
     return false
 }
 
+
+function findSafeRetreatLocation(bot, retreatDistance = RETREAT_DISTANCE) {
+    const botPos = bot.entity.position
+    const hostiles = Object.values(bot.entities).filter(e => e.type === 'hostile')
+
+    // Try different angles to find a safe direction
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315]
+
+    for (const angle of angles) {
+        const radians = (angle * Math.PI) / 180
+        const x = botPos.x + Math.cos(radians) * retreatDistance
+        const z = botPos.z + Math.sin(radians) * retreatDistance
+
+        // Check if this direction moves away from hostiles
+        let isSafe = true
+        for (const hostile of hostiles) {
+            const newDistance = Math.sqrt((x - hostile.position.x) ** 2 + (z - hostile.position.z) ** 2)
+            const currentDistance = botPos.distanceTo(hostile.position)
+
+            if (newDistance <= currentDistance) {
+                isSafe = false
+                break
+            }
+        }
+
+        if (isSafe) {
+            // Find a suitable Y coordinate (ground level)
+            const y = botPos.y // Start with current Y, pathfinder will handle elevation
+            return { x: Math.floor(x), y: Math.floor(y), z: Math.floor(z) }
+        }
+    }
+
+    // If no safe direction found, just move away from the closest hostile
+    if (hostiles.length > 0) {
+        const closestHostile = hostiles.reduce((closest, hostile) => {
+            const dist1 = botPos.distanceTo(hostile.position)
+            const dist2 = botPos.distanceTo(closest.position)
+            return dist1 < dist2 ? hostile : closest
+        })
+
+        const dx = botPos.x - closestHostile.position.x
+        const dz = botPos.z - closestHostile.position.z
+        const length = Math.sqrt(dx * dx + dz * dz)
+
+        if (length > 0) {
+            const x = botPos.x + (dx / length) * retreatDistance
+            const z = botPos.z + (dz / length) * retreatDistance
+            return { x: Math.floor(x), y: Math.floor(botPos.y), z: Math.floor(z) }
+        }
+    }
+
+    return null
+}
+
+function findNearbyHostile(bot, maxDistance = COMBAT_RANGE) {
+    let entity = bot.nearestEntity()
+    let closestHostile = null
+    if (entity) {
+        let distanceToEntity = entity.position.distanceTo(bot.entity.position)
+        closestHostile = (entity.type === 'hostile' && distanceToEntity < maxDistance) ? entity : null
+    }
+    return closestHostile
+}
+
+async function handleCombat(bot, target = null) {
+    const currentTime = Date.now()
+    const botHealth = bot.health
+
+    // Check if we should retreat due to low health
+    const shouldRetreat = botHealth <= RETREAT_HEALTH_THRESHOLD && !isRetreating
+
+    if (shouldRetreat) {
+        console.log(`Health low (${botHealth}/20), retreating!`)
+        isRetreating = true
+        isInCombat = false
+        combatTarget = null
+        retreatStartTime = currentTime
+
+        // Find and move to a safe location
+        const retreatLocation = findSafeRetreatLocation(bot)
+        if (retreatLocation) {
+            try {
+                const goal = new goals.GoalBlock(retreatLocation.x, retreatLocation.y, retreatLocation.z)
+                bot.pathfinder.setGoal(goal, true)
+
+                console.log(`Retreating to ${retreatLocation.x}, ${retreatLocation.y}, ${retreatLocation.z}`)
+            } catch (error) {
+                console.error('Error setting retreat path:', error)
+                isRetreating = false
+            }
+        } else {
+            isRetreating = false
+        }
+
+        return true // We're now retreating
+    }
+
+    // Check if we should stop retreating
+    if (isRetreating) {
+        const hasRetreatTimeExpired = (currentTime - retreatStartTime) > RETREAT_DURATION
+        const hasHealthRecovered = botHealth > RETREAT_HEALTH_THRESHOLD + 2 // Add some buffer
+
+        if (hasRetreatTimeExpired || hasHealthRecovered) {
+            console.log('Stopping retreat - health recovered or timeout reached')
+            isRetreating = false
+            bot.pathfinder.setGoal(null)
+        } else {
+            // Still retreating, don't do combat
+            return true
+        }
+    }
+
+    // Look for nearby hostiles to fight
+    const hostile = findNearbyHostile(bot)
+
+    if (hostile) {
+        // Start or continue combat
+        if (!isInCombat) {
+            console.log(`Engaging hostile: ${hostile.name}`)
+            isInCombat = true
+            combatTarget = hostile
+
+            // Equip combat gear
+            await equipSword(bot)
+            await equipShield(bot)
+        }
+
+        // Attack the hostile
+        try {
+            await bot.pvp.attack(hostile)
+        } catch (error) {
+            console.error('Error attacking hostile:', error)
+        }
+
+        return true // We're in combat
+    } else {
+        // No hostiles nearby, stop combat
+        if (isInCombat) {
+            console.log('No more hostiles nearby, exiting combat mode')
+            isInCombat = false
+            combatTarget = null
+        }
+        return false // Not in combat
+    }
+}
+
 // Function to stop item pickup when other activities start
 function stopItemPickup() {
     if (isPickingUpItem) {
         console.log('Stopping item pickup for other activity')
         isPickingUpItem = false
         targetItem = null
+        bot.pathfinder.setGoal(null)
+    }
+}
+
+// Function to stop combat when other high-priority activities start
+function stopCombat() {
+    if (isInCombat || isRetreating) {
+        console.log('Stopping combat for other high-priority activity')
+        isInCombat = false
+        isRetreating = false
+        combatTarget = null
         bot.pathfinder.setGoal(null)
     }
 }
@@ -515,15 +708,22 @@ function resetAllIdleBehaviors() {
     }
 
     stopItemPickup()
+    stopCombat()
     bot.pathfinder.setGoal(null)
     lastActivityTime = Date.now()
 }
 
 async function botIdle(bot) {
-    // Handle item pickup first (highest priority)
+    // Handle combat first (highest priority after explicit tasks)
+    const inCombatOrRetreating = await handleCombat(bot)
+    if (inCombatOrRetreating) {
+        lastActivityTime = Date.now()
+        return
+    }
+
+    // Handle item pickup
     const isPickingUp = await handleItemPickup(bot)
     if (isPickingUp) {
-        // Update activity time so we don't start wandering while picking up items
         lastActivityTime = Date.now()
         return
     }
@@ -545,20 +745,12 @@ async function botIdle(bot) {
         // Let any T-bag. Be polite :)
         let emote = (entity.metadata[0]&0x02) === 0x02
         if (emote != null) bot.setControlState('sneak', emote)
-
-        // Under attack!!!
-        if (entity.type === 'hostile' &&
-            entity.position.distanceTo(bot.entity.position) < 5) {
-                await equipSword()
-                await equipShield()
-                await bot.pvp.attack(entity)
-        }
     }
 
     //Be ready
     await checkAndUpgradeArmor(bot)
 
-    // Any is in water
+    // Any is standing in water
     const pos = bot.entity.position
     const blockAtFeet = bot.blockAt(pos)
     if (blockAtFeet && blockAtFeet.name === 'water') bot.setControlState('jump',true)
