@@ -61,8 +61,6 @@ async function mine(bot, blockNames, targetCount) {
             .map(pos => bot.blockAt(pos))
             .filter(block => block !== null)
 
-        console.log(targets)
-
         if (targets.length === 0) {
             console.log('No valid targets found')
             continue
@@ -77,7 +75,7 @@ async function mine(bot, blockNames, targetCount) {
             console.error('Failed to collect blocks:', error.message)
             // Try exploring after collection failure
             try {
-                await randomExplore(bot, 16, 32)
+                await explorer.randomExplore(bot, 16, 32)
             } catch (exploreError) {
                 console.error('Recovery exploration failed:', exploreError.message)
             }

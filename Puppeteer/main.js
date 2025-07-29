@@ -7,15 +7,21 @@ const collector = require('mineflayer-collectblock').plugin
 const express = require('express')
 const bodyParser = require('body-parser')
 const readline = require('readline')
+const { Vec3 } = require('vec3')
 
 // Import Puppeteer modules
+// Intrinsics
 const config = require('./Intrisics/puppeteerConfig')
 const state = require('./Intrisics/puppeteerState')
+const taskQueue = require('./Intrisics/puppeteerTaskQueue')
+// Automata behaviour
 const armor = require('./Automata/puppeteerArmor')
 const behaviors = require('./Automata/puppeteerBehaviour')
 const environment = require('./Automata/puppeteerEnvironment')
-const taskQueue = require('./Intrisics/puppeteerTaskQueue')
+
+// Puppeteer Commands
 const mining = require('./Commands/puppeteerMining')
+const placement = require('./Commands/puppeteerPlacement')
 
 // Express app setup
 const app = express()
@@ -136,6 +142,69 @@ const processCommand = (commandString, source = 'unknown') => {
             name: `mine: ${blockNames.join(', ')} x${count}`,
             execute: async () => {
                 return await mining.mine(state.bot, blockNames, count)
+            }
+        })
+    }
+
+    if (args[0] === 'place') {
+        if (args.length < 5) {
+            console.log('Usage: place <block_name> <x> <y> <z>')
+            return
+        }
+
+        const blockName = args[1]
+        const x = parseFloat(args[2].replace(",", "."))
+        const y = parseFloat(args[3].replace(",", "."))
+        const z = parseFloat(args[4].replace(",", "."))
+
+        // Validate coordinates
+        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+            console.log('Invalid coordinates. X, Y, Z must be numbers')
+            return
+        }
+
+        taskQueue.enqueue({
+            name: `place: ${blockName} at (${x}, ${y}, ${z})`,
+            execute: async () => {
+                return await placement.place(state.bot, blockName, x, y, z)
+            }
+        })
+    }
+
+    if (args[0] === 'placenear') {
+        if (args.length < 2) {
+            console.log("Usage: placenear [block_name]")
+            return
+        }
+        const blockName = args[1]
+        taskQueue.enqueue({
+            name: `placenear: ${blockName} around player`,
+            execute: async () => {
+                return await placement.placeNear(state.bot, blockName)
+            }
+        })
+    }
+
+    if (args[0] === 'break') {
+        if (args.length < 4) {
+            console.log('Usage: break <x> <y> <z>')
+            return
+        }
+
+        const x = parseFloat(args[1].replace(",", "."))
+        const y = parseFloat(args[2].replace(",", "."))
+        const z = parseFloat(args[3].replace(",", "."))
+
+        // Validate coordinates
+        if (isNaN(x) || isNaN(y) || isNaN(z)) {
+            console.log('Invalid coordinates. X, Y, Z must be numbers')
+            return
+        }
+
+        taskQueue.enqueue({
+            name: `break: block at (${x}, ${y}, ${z})`,
+            execute: async () => {
+                return await placement.breakBlock(state.bot, x, y, z)
             }
         })
     }

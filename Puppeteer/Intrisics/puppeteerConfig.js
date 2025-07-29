@@ -67,6 +67,43 @@ module.exports = {
         'axolotl', 'goat', 'frog', 'villager', 'wandering_trader'
     ],
 
+    ITEM_DURABILITY_MAP : {
+        // Pickaxes
+        'wooden_pickaxe': 59,
+        'stone_pickaxe': 131,
+        'iron_pickaxe': 250,
+        'golden_pickaxe': 32,
+        'diamond_pickaxe': 1561,
+        'netherite_pickaxe': 2031,
+
+        // Axes
+        'wooden_axe': 59,
+        'stone_axe': 131,
+        'iron_axe': 250,
+        'golden_axe': 32,
+        'diamond_axe': 1561,
+        'netherite_axe': 2031,
+
+        // Shovels
+        'wooden_shovel': 59,
+        'stone_shovel': 131,
+        'iron_shovel': 250,
+        'golden_shovel': 32,
+        'diamond_shovel': 1561,
+        'netherite_shovel': 2031,
+
+        // Swords
+        'wooden_sword': 59,
+        'stone_sword': 131,
+        'iron_sword': 250,
+        'golden_sword': 32,
+        'diamond_sword': 1561,
+        'netherite_sword': 2031,
+
+        // Others
+        'shears': 238
+    },
+
     // Combat configuration
     COMBAT_RANGE: 5,
     RETREAT_HEALTH_THRESHOLD: 6,
