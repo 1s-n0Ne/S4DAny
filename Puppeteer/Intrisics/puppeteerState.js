@@ -10,6 +10,9 @@ class BotState {
         this.mcData = null
         this.movements = null
 
+        // Physical environment variables
+        this.lastNearby = new Set(String())
+
         // Activity tracking
         this.lastActivityTime = Date.now()
 
@@ -25,14 +28,13 @@ class BotState {
         // Combat behavior state
         this.isInCombat = false
         this.isRetreating = false
-        this.combatTarget = null
         this.retreatStartTime = 0
     }
 
     // Reset all idle behaviors
     resetAllIdleBehaviors() {
         if (this.isWandering) {
-            console.log('Bot started activity, stopping wandering')
+            console.log('Stopping wandering')
             this.isWandering = false
             this.targetMob = null
         }
@@ -50,7 +52,7 @@ class BotState {
     // Stop item pickup behavior
     stopItemPickup() {
         if (this.isPickingUpItem) {
-            console.log('Stopping item pickup for other activity')
+            console.log('Stopping item pickup')
             this.isPickingUpItem = false
             this.targetItem = null
             if (this.bot && this.bot.pathfinder) {
@@ -62,10 +64,9 @@ class BotState {
     // Stop combat behavior
     stopCombat() {
         if (this.isInCombat || this.isRetreating) {
-            console.log('Stopping combat for other high-priority activity')
+            console.log('Stopping combat')
             this.isInCombat = false
             this.isRetreating = false
-            this.combatTarget = null
             if (this.bot && this.bot.pathfinder) {
                 this.bot.pathfinder.setGoal(null)
             }

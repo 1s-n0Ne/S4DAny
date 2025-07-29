@@ -7,7 +7,7 @@ const toolPlugin = require('mineflayer-tool').plugin;
 // const Vec3 = require('vec3').Vec3
 const { OctahedronIterator } = require('prismarine-world').iterators
 const pvp = require('mineflayer-pvp').plugin
-const autoeat = require('mineflayer-auto-eat').plugin
+const autoeat = require('mineflayer-auto-eat').loader
 const armorManager = require("mineflayer-armor-manager");
 
 const express = require('express')
@@ -122,7 +122,7 @@ const initBot = () => {
     bot.loadPlugin(toolPlugin)
     bot.loadPlugin(collector)
     bot.loadPlugin(pvp)
-    bot.loadPlugin(autoeat)
+    //bot.loadPlugin(autoeat)
     bot.loadPlugin(armorManager)
 
     bot.on('login', () => {
@@ -154,7 +154,7 @@ const initBot = () => {
         movements.canOpenDoors = true
 
         bot.tool.equipForBlock = bot.tool.equipForBlock.bind(bot.tool);
-        bot.autoEat.options.startAt = 17
+        //bot.autoEat.options.startAt = 17
 
         ANY_READY = true
         setTimeout(() => {

@@ -3,15 +3,19 @@ const mineflayer = require('mineflayer')
 const { pathfinder, Movements } = require('mineflayer-pathfinder')
 const pvp = require('mineflayer-pvp').plugin
 const autoEat = require('mineflayer-auto-eat').loader
+const collector = require('mineflayer-collectblock').plugin
 const express = require('express')
 const bodyParser = require('body-parser')
 const readline = require('readline')
 
-// Import our modules
-const config = require('./puppeteerConfig')
-const state = require('./puppeteerState')
-const armor = require('./puppeteerArmor')
-const behaviors = require('./puppeteerBehaviour')
+// Import Puppeteer modules
+const config = require('./Intrisics/puppeteerConfig')
+const state = require('./Intrisics/puppeteerState')
+const armor = require('./Automata/puppeteerArmor')
+const behaviors = require('./Automata/puppeteerBehaviour')
+const environment = require('./Automata/puppeteerEnvironment')
+const taskQueue = require('./Intrisics/puppeteerTaskQueue')
+const mining = require('./Commands/puppeteerMining')
 
 // Express app setup
 const app = express()
@@ -25,6 +29,20 @@ const rl = readline.createInterface({
     output: process.stdout,
     prompt: 'Bot> '
 })
+
+// Setup task queue event listeners
+taskQueue.on('taskStarted', (task) => {
+    console.log(`[TaskQueue] Started: ${task.name}`)
+})
+
+taskQueue.on('taskCompleted', (task) => {
+    console.log(`[TaskQueue] Completed: ${task.name}`)
+})
+
+taskQueue.on('taskFailed', (task, error) => {
+    console.log(`[TaskQueue] Failed: ${task.name} - ${error.message}`)
+})
+
 
 // Function to process commands (used by both REST and console)
 const processCommand = (commandString, source = 'unknown') => {
@@ -42,27 +60,84 @@ const processCommand = (commandString, source = 'unknown') => {
     if (args[0] === 'stop') {
         if (state.ANY_READY) {
             state.ANY_SHOULD_LOG_IN = false
+            // Cancel any ongoing tasks
+            taskQueue.stop()
+            taskQueue.clear()
+            state.resetAllIdleBehaviors()
+
             setTimeout(() => {
                 state.bot.quit()
-            })
-        }
-    }
-
-    if (state.ANY_READY) {
-        if (args[0] === 'chat') {
-            args.splice(0, 1)
-            state.bot.chat(args.join(' '))
-        } else {
-            console.log('Invalid command')
+            }, 1000)
         }
     }
 
     if (args[0] === 'exit') {
         console.log('Shutting down...')
         if (state.ANY_READY && state.bot) {
+            taskQueue.stop()
+            taskQueue.clear()
             state.bot.quit()
         }
         process.exit(0)
+    }
+
+        // Queue status commands (don't need to be queued)
+    if (args[0] === 'queue') {
+        if (args[1] === 'status') {
+            const status = taskQueue.getStatus()
+            console.log('Queue Status:', JSON.stringify(status, null, 2))
+            return
+        }
+        if (args[1] === 'clear') {
+            taskQueue.clear()
+            console.log('Queue cleared')
+            return
+        }
+        if (args[1] === 'stop') {
+            taskQueue.stop()
+            console.log('Queue stopped')
+            return
+        }
+        if (args[1] === 'resume') {
+            taskQueue.resume()
+            console.log('Queue resumed')
+            return
+        }
+    }
+
+    // Commands that need the bot to be ready
+    if (!state.ANY_READY) {
+        console.log('Bot is not ready yet')
+        return
+    }
+
+    if (args[0] === 'chat') {
+        args.splice(0, 1)
+        const message = args.join(' ')
+
+        state.bot.chat(message)
+    }
+
+    if (args[0] === 'mine') {
+        if (args.length < 3) {
+            console.log('Usage: mine <block_name> [block_name2...] <count>')
+            return
+        }
+
+        const count = parseInt(args[args.length - 1])
+        if (isNaN(count)) {
+            console.log('Last argument must be a number (count)')
+            return
+        }
+
+        const blockNames = args.slice(1, -1)
+
+        taskQueue.enqueue({
+            name: `mine: ${blockNames.join(', ')} x${count}`,
+            execute: async () => {
+                return await mining.mine(state.bot, blockNames, count)
+            }
+        })
     }
 }
 
@@ -98,6 +173,7 @@ const initBot = () => {
     state.bot.loadPlugin(pathfinder)
     state.bot.loadPlugin(pvp)
     state.bot.loadPlugin(autoEat)
+    state.bot.loadPlugin(collector)
 
     // Add this line to prevent the MaxListenersExceededWarning
     state.bot.setMaxListeners(20)
@@ -168,12 +244,16 @@ const initBot = () => {
         if (message.includes('health')) {
             state.bot.chat(`\nHealth: ${state.bot.health}\nHunger: ${state.bot.food}`)
         }
+        if (message.includes('state')) {
+            state.bot.chat(environment.getInternalState(state.bot))
+        }
     })
 
     state.bot.on('physicsTick', async () => {
         if (state.bot.pathfinder.isMoving() ||
             state.bot.pathfinder.isMining() ||
-            state.bot.pathfinder.isBuilding()) {
+            state.bot.pathfinder.isBuilding() ||
+            taskQueue.isProcessing) {
             state.updateActivity()
             return
         }

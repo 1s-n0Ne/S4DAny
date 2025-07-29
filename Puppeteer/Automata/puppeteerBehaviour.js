@@ -1,7 +1,7 @@
 // behaviors.js - Bot behavior implementations
 const { Movements, goals } = require('mineflayer-pathfinder')
-const config = require('./puppeteerConfig')
-const state = require('./puppeteerState')
+const config = require('../Intrisics/puppeteerConfig')
+const state = require('../Intrisics/puppeteerState')
 const armor = require('./puppeteerArmor')
 
 function isPassiveMob(entity) {
@@ -182,8 +182,11 @@ async function handleCombat(bot) {
     const currentTime = Date.now()
     const botHealth = bot.health
 
+    // Look for nearby hostiles to fight
+    const hostile = findNearbyHostile(bot)
+
     // Check if we should retreat due to low health
-    const shouldRetreat = botHealth <= config.RETREAT_HEALTH_THRESHOLD && !state.isRetreating
+    const shouldRetreat = botHealth <= config.RETREAT_HEALTH_THRESHOLD && !state.isRetreating && hostile
 
     if (shouldRetreat) {
         console.log(`Health low (${botHealth}/20), retreating!`)
@@ -196,6 +199,10 @@ async function handleCombat(bot) {
         const retreatLocation = findSafeRetreatLocation(bot)
         if (retreatLocation) {
             try {
+                const defaultMove = new Movements(bot)
+                defaultMove.canDig = false
+                bot.pathfinder.setMovements(defaultMove)
+
                 const goal = new goals.GoalBlock(retreatLocation.x, retreatLocation.y, retreatLocation.z)
                 bot.pathfinder.setGoal(goal, true)
 
@@ -226,15 +233,11 @@ async function handleCombat(bot) {
         }
     }
 
-    // Look for nearby hostiles to fight
-    const hostile = findNearbyHostile(bot)
-
     if (hostile) {
         // Start or continue combat
         if (!state.isInCombat) {
             console.log(`Engaging hostile: ${hostile.name}`)
             state.isInCombat = true
-            state.combatTarget = hostile
         }
 
         // Attack the hostile
@@ -254,7 +257,6 @@ async function handleCombat(bot) {
         if (state.isInCombat) {
             console.log('No more hostiles nearby, exiting combat mode')
             state.isInCombat = false
-            state.combatTarget = null
         }
         return false // Not in combat
     }

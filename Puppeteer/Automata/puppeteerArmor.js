@@ -1,5 +1,5 @@
 // armor.js - Armor management functionality
-const config = require('./puppeteerConfig')
+const config = require('../Intrisics/puppeteerConfig')
 
 function getArmorType(itemName) {
     if (itemName.includes('helmet')) return 'helmet'

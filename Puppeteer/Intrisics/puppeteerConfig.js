@@ -71,7 +71,7 @@ module.exports = {
     COMBAT_RANGE: 5,
     RETREAT_HEALTH_THRESHOLD: 6,
     RETREAT_DISTANCE: 15,
-    RETREAT_DURATION: 10000,
+    RETREAT_DURATION: 5000,
 
     // Behavior timings
     IDLE_TIME_BEFORE_WANDERING: 60000, // 60 seconds
