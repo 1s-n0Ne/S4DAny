@@ -1,5 +1,4 @@
-// puppeteerMine.js - Simple mine command implementation
-const { goals } = require('mineflayer-pathfinder')
+const explorer = require('./puppeteerExplorer')
 
 async function mine(bot, blockNames, targetCount) {
     const mcData = require('minecraft-data')(bot.version)
@@ -43,7 +42,7 @@ async function mine(bot, blockNames, targetCount) {
             console.log(`No blocks found, exploring... (attempt ${exploreAttempts + 1}/${maxExploreAttempts})`)
 
             try {
-                await randomExplore(bot, 32, 64)
+                await explorer.randomExplore(bot, 32, 64)
                 exploreAttempts++
                 continue
             } catch (error) {
@@ -91,46 +90,6 @@ async function mine(bot, blockNames, targetCount) {
         mined: totalMined,
         success: totalMined >= targetCount
     }
-}
-
-async function randomExplore(bot, minDist, maxDist) {
-    return new Promise((resolve, reject) => {
-        const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-
-        const xOff = randomInt(-1, 1) * randomInt(minDist, maxDist)
-        const zOff = randomInt(-1, 1) * randomInt(minDist, maxDist)
-
-        const newPos = bot.entity.position.offset(xOff, 0, zOff)
-
-        bot.pathfinder.setGoal(new goals.GoalNear(newPos.x, newPos.y, newPos.z, 2))
-
-        const onGoalReached = () => {
-            cleanup()
-            resolve()
-        }
-
-        const onPathUpdate = (results) => {
-            if (results.status === 'noPath') {
-                cleanup()
-                reject(new Error('No path found'))
-            }
-        }
-
-        const cleanup = () => {
-            bot.removeListener('goal_reached', onGoalReached)
-            bot.removeListener('path_update', onPathUpdate)
-        }
-
-        bot.once('goal_reached', onGoalReached)
-        bot.on('path_update', onPathUpdate)
-
-        // Timeout after 20 seconds
-        setTimeout(() => {
-            cleanup()
-            bot.pathfinder.setGoal(null)
-            reject(new Error('Exploration timeout'))
-        }, 20000)
-    })
 }
 
 module.exports = { mine }
