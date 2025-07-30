@@ -262,8 +262,50 @@ async function handleCombat(bot) {
     }
 }
 
+async function botIdle(bot) {
+    // Handle combat first (highest priority after explicit tasks)
+    const inCombatOrRetreating = await handleCombat(bot)
+    if (inCombatOrRetreating) {
+        state.lastActivityTime = Date.now()
+        return
+    }
+
+    // Handle item pickup
+    const isPickingUp = await handleItemPickup(bot)
+    if (isPickingUp) {
+        state.lastActivityTime = Date.now()
+        return
+    }
+
+    // Handle wandering behavior second
+    await handleWandering(bot)
+
+    // If we're currently wandering, don't do normal idle behavior
+    if (state.isWandering) {
+        return
+    }
+
+    // Idling and close entity behaviour
+    const entity = bot.nearestEntity()
+    if (entity) {
+        // Looking around
+        await bot.lookAt(entity.position.offset(0,entity.height,0))
+
+        // Let any T-bag. Be polite :)
+        let emote = (entity.metadata[0]&0x02) === 0x02
+        if (emote != null) bot.setControlState('sneak', emote)
+    }
+
+    //Be ready
+    await armor.checkAndUpgradeArmor(bot)
+
+    // Any is standing in water
+    const pos = bot.entity.position
+    const blockAtFeet = bot.blockAt(pos)
+    if (blockAtFeet && blockAtFeet.name === 'water') bot.setControlState('jump',true)
+    else bot.setControlState('jump', false)
+}
+
 module.exports = {
-    handleWandering,
-    handleItemPickup,
-    handleCombat
+    botIdle
 }

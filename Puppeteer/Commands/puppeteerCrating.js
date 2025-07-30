@@ -65,7 +65,7 @@ async function craft(bot, itemName, amount = 1) {
 
     // Find nearest crafting table
     console.log('Looking for crafting table...')
-    const craftingTable = await findCraftingTable(bot)
+    const craftingTable = await explorer.findBlock(bot,'crafting_table')
     if (!craftingTable) {
         throw new Error('No crafting table found nearby')
     }
@@ -260,41 +260,6 @@ function canCraftRecipe(bot, recipe) {
     }
 
     return true
-}
-
-// Find nearest crafting table
-async function findCraftingTable(bot) {
-    const mcData = require('minecraft-data')(bot.version)
-    const craftingTableId = mcData.blocksByName['crafting_table'].id
-
-    // Search for crafting tables within 32 blocks
-    const craftingTables = bot.findBlocks({
-        matching: craftingTableId,
-        maxDistance: 32,
-        count: 10
-    })
-
-    if (craftingTables.length === 0) {
-        return null
-    }
-
-    // Sort by distance and find the closest accessible one
-    const botPos = bot.entity.position
-    craftingTables.sort((a, b) => {
-        const distA = botPos.distanceTo(a)
-        const distB = botPos.distanceTo(b)
-        return distA - distB
-    })
-
-    // Return the first valid crafting table block
-    for (const pos of craftingTables) {
-        const block = bot.blockAt(pos)
-        if (block && block.name === 'crafting_table') {
-            return block
-        }
-    }
-
-    return null
 }
 
 module.exports = {

@@ -78,11 +78,6 @@ class BotState {
         this.lastActivityTime = Date.now()
     }
 
-    // Check if bot is busy with any activity
-    isBusy() {
-        return this.isWandering || this.isPickingUpItem || this.isInCombat || this.isRetreating
-    }
-
     // Get time since last activity
     getTimeSinceLastActivity() {
         return Date.now() - this.lastActivityTime

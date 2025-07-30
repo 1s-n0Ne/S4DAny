@@ -1,11 +1,46 @@
 // puppeteerMine.js - Simple mine command implementation
 const { goals } = require('mineflayer-pathfinder')
 
+// Find nearest crafting table
+async function findBlock(bot, blockName) {
+    const mcData = require('minecraft-data')(bot.version)
+    const blockId = mcData.blocksByName[blockName].id
+
+    // Search for crafting tables within 32 blocks
+    const blocksMatch = bot.findBlocks({
+        matching: blockId,
+        maxDistance: 32,
+        count: 10
+    })
+
+    if (blocksMatch.length === 0) {
+        return null
+    }
+
+    // Sort by distance and find the closest accessible one
+    const botPos = bot.entity.position
+    blocksMatch.sort((a, b) => {
+        const distA = botPos.distanceTo(a)
+        const distB = botPos.distanceTo(b)
+        return distA - distB
+    })
+
+    // Return the first valid crafting table block
+    for (const pos of blocksMatch) {
+        const block = bot.blockAt(pos)
+        if (block && block.name === 'crafting_table') {
+            return block
+        }
+    }
+
+    return null
+}
+
 // Move to a block position
 async function moveToBlock(bot, block) {
     const pos = block.position
 
-    console.log(`Moving to crafting table at (${pos.x}, ${pos.y}, ${pos.z})`)
+    console.log(`Moving to ${block.name} at (${pos.x}, ${pos.y}, ${pos.z})`)
 
     // Set goal to get near the crafting table (within 3 blocks)
     bot.pathfinder.setGoal(new goals.GoalNear(pos.x, pos.y, pos.z, 3))
@@ -20,7 +55,7 @@ async function moveToBlock(bot, block) {
         const onPathUpdate = (results) => {
             if (results.status === 'noPath') {
                 cleanup()
-                reject(new Error('Cannot reach crafting table'))
+                reject(new Error(`Cannot reach ${block.name}`))
             }
         }
 
@@ -42,6 +77,63 @@ async function moveToBlock(bot, block) {
 
     // Look at the crafting table
     await bot.lookAt(block.position.offset(0.5, 0.5, 0.5))
+}
+
+// Find and go to a specific block type using existing findBlock and moveToBlock functions
+async function gotoBlock(bot, blockName) {
+    console.log(`Looking for ${blockName}...`)
+
+    // Use the existing findBlock function to locate the block
+    const block = await findBlock(bot, blockName)
+
+    if (!block) {
+        throw new Error(`No ${blockName} found within search range`)
+    }
+
+    console.log(`Found ${blockName} at (${block.position.x}, ${block.position.y}, ${block.position.z})`)
+
+    // Use the existing moveToBlock function to move to it
+    await moveToBlock(bot, block)
+
+    return {
+        success: true,
+        blockName: blockName,
+        position: block.position,
+        message: `Found and reached ${blockName} at (${block.position.x}, ${block.position.y}, ${block.position.z})`
+    }
+}
+
+// Go to specific coordinates
+async function gotoPosition(bot, x, y, z) {
+    const targetX = Math.floor(x)
+    const targetY = Math.floor(y)
+    const targetZ = Math.floor(z)
+
+    console.log(`Moving to position (${targetX}, ${targetY}, ${targetZ})`)
+
+    // Create a virtual block object at the target position
+    const virtualBlock = {
+        position: {
+            x: targetX,
+            y: targetY,
+            z: targetZ
+        }
+    }
+
+    try {
+        // Use moveToBlock function under the hood
+        await moveToBlock(bot, virtualBlock)
+
+        console.log(`Successfully reached position (${targetX}, ${targetY}, ${targetZ})`)
+        return {
+            success: true,
+            position: { x: targetX, y: targetY, z: targetZ },
+            message: `Reached position (${targetX}, ${targetY}, ${targetZ})`
+        }
+    } catch (error) {
+        // Re-throw with more specific error message for position navigation
+        throw new Error(`Cannot reach position (${targetX}, ${targetY}, ${targetZ}): ${error.message}`)
+    }
 }
 
 async function randomExplore(bot, minDist, maxDist) {
@@ -85,6 +177,9 @@ async function randomExplore(bot, minDist, maxDist) {
 }
 
 module.exports = {
+    findBlock,
     randomExplore,
-    moveToBlock
+    moveToBlock,
+    gotoPosition,
+    gotoBlock
 }
