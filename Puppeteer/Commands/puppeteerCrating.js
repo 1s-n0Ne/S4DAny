@@ -1,3 +1,9 @@
+// puppeteerCrafting.js - Combined crafting functionality for both 2x2 and crafting table
+const { goals } = require('mineflayer-pathfinder')
+
+const explorer = require('./puppeteerExplorer')
+
+// Craft using 2x2 player inventory grid
 async function craftSmall(bot, itemName, amount = 1) {
     const mcData = require('minecraft-data')(bot.version)
     const Recipe = require('prismarine-recipe')(bot.version).Recipe
@@ -28,29 +34,154 @@ async function craftSmall(bot, itemName, amount = 1) {
         throw new Error(`Missing ingredients to craft ${itemName}`)
     }
 
+    // Perform crafting
+    return await performCrafting(bot, availableRecipe, itemName, amount, null)
+}
+
+// Craft using crafting table
+async function craft(bot, itemName, amount = 1) {
+    const mcData = require('minecraft-data')(bot.version)
+    const Recipe = require('prismarine-recipe')(bot.version).Recipe
+
+    console.log(`Attempting to craft ${itemName} x${amount} using crafting table`)
+
+    // Validate item exists
+    const itemType = mcData.itemsByName[itemName]
+    if (!itemType) {
+        throw new Error(`Unknown item: ${itemName}`)
+    }
+
+    // Find recipes for this item
+    const allRecipes = Recipe.find(itemType.id)
+    if (allRecipes.length === 0) {
+        throw new Error(`No recipes found for ${itemName}`)
+    }
+
+    // Find a recipe we can craft with current inventory
+    const availableRecipe = findAvailableRecipe(bot, allRecipes)
+    if (!availableRecipe) {
+        throw new Error(`Missing ingredients to craft ${itemName}`)
+    }
+
+    // Find nearest crafting table
+    console.log('Looking for crafting table...')
+    const craftingTable = await findCraftingTable(bot)
+    if (!craftingTable) {
+        throw new Error('No crafting table found nearby')
+    }
+
+    console.log(`Found crafting table at ${craftingTable.position}`)
+
+    // Move to crafting table
+    await explorer.moveToBlock(bot, craftingTable)
+
+    // Wait a bit to ensure we're in position
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Get fresh reference to the crafting table block after moving
+    const freshCraftingTable = bot.blockAt(craftingTable.position)
+    if (!freshCraftingTable || freshCraftingTable.name !== 'crafting_table') {
+        throw new Error('Lost reference to crafting table')
+    }
+
+    // No need to open the crafting table - bot.craft handles that internally
+    console.log('Ready to craft...')
+
+    try {
+        // Perform crafting - pass the block, not a window
+        const result = await performCrafting(bot, availableRecipe, itemName, amount, freshCraftingTable)
+
+        return result
+    } catch (error) {
+        throw error
+    }
+}
+
+// Shared function to perform the actual crafting
+async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
     // Calculate how many times to craft
-    const resultCount = availableRecipe.result.count || 1
+    const resultCount = recipe.result.count || 1
     const craftTimes = Math.ceil(amount / resultCount)
 
     console.log(`Will craft ${craftTimes} times to get ${amount} ${itemName}`)
 
     let totalCrafted = 0
 
+    // Get initial inventory count of the target item
+    const initialCount = getItemCount(bot, itemName)
+
     // Perform crafting
     for (let i = 0; i < craftTimes; i++) {
         try {
-            // Use mineflayer's built-in crafting
-            await bot.craft(availableRecipe, 1, null) // null means use inventory crafting
-            totalCrafted += resultCount
-            console.log(`Crafted ${resultCount} ${itemName}. Total: ${totalCrafted}`)
+            // Check if we still have ingredients
+            if (!canCraftRecipe(bot, recipe)) {
+                console.log('Out of ingredients')
+                break
+            }
+
+            // Store inventory state before crafting
+            const beforeCraftCount = getItemCount(bot, itemName)
+
+            // Set up error listener for protocol errors
+            let protocolError = null
+            const errorHandler = (err) => {
+                if (err.message && err.message.includes('PartialReadError')) {
+                    protocolError = err
+                    console.error('Protocol error detected during crafting:', err.message)
+                }
+            }
+
+            // Add temporary error listener
+            bot._client.on('error', errorHandler)
+
+            try {
+                // Use mineflayer's built-in crafting - pass the block for crafting table, null for inventory
+                await bot.craft(recipe, 1, craftingTable)
+
+                // Wait a bit for inventory to update
+                await new Promise(resolve => setTimeout(resolve, 500))
+
+                // Verify the craft actually succeeded by checking inventory
+                const afterCraftCount = getItemCount(bot, itemName)
+                const actualCrafted = afterCraftCount - beforeCraftCount
+
+                if (protocolError) {
+                    throw new Error('Protocol error occurred during crafting')
+                }
+
+                if (actualCrafted > 0) {
+                    totalCrafted += actualCrafted
+                    console.log(`Crafted ${actualCrafted} ${itemName}. Total: ${totalCrafted}`)
+                } else {
+                    console.log(`Craft appears to have failed - no items were created`)
+                    throw new Error('Craft failed - no items created')
+                }
+
+            } finally {
+                // Remove error listener
+                bot._client.removeListener('error', errorHandler)
+            }
 
             // Small delay between crafts
             await new Promise(resolve => setTimeout(resolve, 300))
 
         } catch (error) {
             console.error(`Craft failed on attempt ${i + 1}: ${error.message}`)
-            break
+
+            // If it's a protocol error, we might want to abort completely
+            if (error.message.includes('Protocol error')) {
+                console.log('Aborting crafting due to protocol error')
+                break
+            }
         }
+    }
+
+    // Final verification
+    const finalCount = getItemCount(bot, itemName)
+    const actualTotalCrafted = finalCount - initialCount
+
+    if (actualTotalCrafted > 0) {
+        totalCrafted = actualTotalCrafted // Use the actual count
     }
 
     if (totalCrafted === 0) {
@@ -64,10 +195,22 @@ async function craftSmall(bot, itemName, amount = 1) {
         itemName: itemName,
         requested: amount,
         crafted: totalCrafted,
-        message: `Crafted ${totalCrafted} ${itemName}`
+        message: `Crafted ${totalCrafted} ${itemName}${craftingTable ? ' using crafting table' : ''}`
     }
 }
 
+// Helper function to count items in inventory
+function getItemCount(bot, itemName) {
+    const mcData = require('minecraft-data')(bot.version)
+    const item = mcData.itemsByName[itemName]
+    if (!item) return 0
+
+    return bot.inventory.items()
+        .filter(invItem => invItem.type === item.id)
+        .reduce((sum, invItem) => sum + invItem.count, 0)
+}
+
+// Find a recipe that we have ingredients for
 function findAvailableRecipe(bot, recipes) {
     // Try each recipe to see which one we can make
     for (const recipe of recipes) {
@@ -78,6 +221,7 @@ function findAvailableRecipe(bot, recipes) {
     return null
 }
 
+// Check if we have enough ingredients for a recipe
 function canCraftRecipe(bot, recipe) {
     const inventory = bot.inventory.items()
     const required = {}
@@ -103,6 +247,9 @@ function canCraftRecipe(bot, recipe) {
 
     // Check if we have enough of each item
     for (const [itemId, count] of Object.entries(required)) {
+        // Recipe badness. Looking for item -1???
+        if (itemId === '-1') continue
+
         const available = inventory
             .filter(item => item.type === parseInt(itemId))
             .reduce((sum, item) => sum + item.count, 0)
@@ -115,4 +262,42 @@ function canCraftRecipe(bot, recipe) {
     return true
 }
 
-module.exports = { craftSmall }
+// Find nearest crafting table
+async function findCraftingTable(bot) {
+    const mcData = require('minecraft-data')(bot.version)
+    const craftingTableId = mcData.blocksByName['crafting_table'].id
+
+    // Search for crafting tables within 32 blocks
+    const craftingTables = bot.findBlocks({
+        matching: craftingTableId,
+        maxDistance: 32,
+        count: 10
+    })
+
+    if (craftingTables.length === 0) {
+        return null
+    }
+
+    // Sort by distance and find the closest accessible one
+    const botPos = bot.entity.position
+    craftingTables.sort((a, b) => {
+        const distA = botPos.distanceTo(a)
+        const distB = botPos.distanceTo(b)
+        return distA - distB
+    })
+
+    // Return the first valid crafting table block
+    for (const pos of craftingTables) {
+        const block = bot.blockAt(pos)
+        if (block && block.name === 'crafting_table') {
+            return block
+        }
+    }
+
+    return null
+}
+
+module.exports = {
+    craftSmall,
+    craft
+}

@@ -231,6 +231,28 @@ const processCommand = (commandString, source = 'unknown') => {
             }
         })
     }
+
+    if (args[0] === 'craft') {
+        if (args.length < 2) {
+            console.log('Usage: craft <item_name> [amount]')
+            return
+        }
+
+        const itemName = args[1]
+        const amount = args.length >= 3 ? parseInt(args[2]) : 1
+
+        if (isNaN(amount) || amount < 1) {
+            console.log('Amount must be a positive number')
+            return
+        }
+
+        taskQueue.enqueue({
+            name: `craft: ${itemName} x${amount}`,
+            execute: async () => {
+                return await crafting.craft(state.bot, itemName, amount)
+            }
+        })
+    }
 }
 
 // Console input handler

@@ -1,6 +1,48 @@
 // puppeteerMine.js - Simple mine command implementation
 const { goals } = require('mineflayer-pathfinder')
 
+// Move to a block position
+async function moveToBlock(bot, block) {
+    const pos = block.position
+
+    console.log(`Moving to crafting table at (${pos.x}, ${pos.y}, ${pos.z})`)
+
+    // Set goal to get near the crafting table (within 3 blocks)
+    bot.pathfinder.setGoal(new goals.GoalNear(pos.x, pos.y, pos.z, 3))
+
+    // Wait for pathfinding to complete
+    await new Promise((resolve, reject) => {
+        const onGoalReached = () => {
+            cleanup()
+            resolve()
+        }
+
+        const onPathUpdate = (results) => {
+            if (results.status === 'noPath') {
+                cleanup()
+                reject(new Error('Cannot reach crafting table'))
+            }
+        }
+
+        const cleanup = () => {
+            bot.removeListener('goal_reached', onGoalReached)
+            bot.removeListener('path_update', onPathUpdate)
+        }
+
+        bot.once('goal_reached', onGoalReached)
+        bot.on('path_update', onPathUpdate)
+
+        // Timeout after 15 seconds
+        setTimeout(() => {
+            cleanup()
+            bot.pathfinder.setGoal(null)
+            reject(new Error('Pathfinding timeout'))
+        }, 15000)
+    })
+
+    // Look at the crafting table
+    await bot.lookAt(block.position.offset(0.5, 0.5, 0.5))
+}
 
 async function randomExplore(bot, minDist, maxDist) {
     return new Promise((resolve, reject) => {
@@ -42,4 +84,7 @@ async function randomExplore(bot, minDist, maxDist) {
     })
 }
 
-module.exports = { randomExplore }
+module.exports = {
+    randomExplore,
+    moveToBlock
+}
