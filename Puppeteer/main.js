@@ -22,6 +22,7 @@ const environment = require('./Automata/puppeteerEnvironment')
 // Puppeteer Commands
 const mining = require('./Commands/puppeteerMining')
 const placement = require('./Commands/puppeteerPlacement')
+const crafting = require('./Commands/puppeteerCrating')
 
 // Express app setup
 const app = express()
@@ -205,6 +206,28 @@ const processCommand = (commandString, source = 'unknown') => {
             name: `break: block at (${x}, ${y}, ${z})`,
             execute: async () => {
                 return await placement.breakBlock(state.bot, x, y, z)
+            }
+        })
+    }
+
+    if (args[0] === 'craftsmall') {
+        if (args.length < 2) {
+            console.log('Usage: craftsmall [item_name] [amount]')
+            return
+        }
+
+        const itemName = args[1]
+        const amount = args.length >= 3 ? parseInt(args[2]) : 1
+
+        if (isNaN(amount) || amount <= 0) {
+            console.log('Amount must be a positive number')
+            return
+        }
+
+        taskQueue.enqueue({
+            name: `craftsmall: ${itemName} x${amount}`,
+            execute: async () => {
+                return await crafting.craftSmall(state.bot, itemName, amount)
             }
         })
     }
