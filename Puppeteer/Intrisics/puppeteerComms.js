@@ -9,6 +9,7 @@ const placement = require('../Commands/puppeteerPlacement')
 const crafting = require('../Commands/puppeteerCrating')
 const explorer = require("../Commands/puppeteerExplorer")
 const following = require('../Commands/puppeteerFollowing')
+const hunting = require('../Commands/puppeteerHunting')
 
 // Function to process commands (used by both REST and console)
 const processCommand = (commandString, source = 'unknown') => {
@@ -297,6 +298,28 @@ const processCommand = (commandString, source = 'unknown') => {
             name: `randomwalk: ${minDist}-${maxDist} blocks`,
             execute: async () => {
                 return await explorer.randomExplore(state.bot, minDist, maxDist)
+            }
+        })
+    }
+
+    if (args[0] === 'hunt') {
+        if (args.length < 2) {
+            console.log('Usage: hunt <mob_type> [max_count]')
+            return
+        }
+
+        const mobType = args[1]
+        const maxCount = args.length >= 3 ? parseInt(args[2]) : null
+
+        if (args.length >= 3 && (isNaN(maxCount) || maxCount <= 0)) {
+            console.log('Max count must be a positive number')
+            return
+        }
+
+        taskQueue.enqueue({
+            name: `hunt: ${mobType}${maxCount ? ` x${maxCount}` : ' (all)'}`,
+            execute: async () => {
+                return await hunting.hunt(state.bot, mobType, maxCount)
             }
         })
     }
