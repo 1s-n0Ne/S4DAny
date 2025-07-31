@@ -3,12 +3,12 @@ const { pathfinder, Movements } = require('mineflayer-pathfinder')
 const pvp = require('mineflayer-pvp').plugin
 const autoEat = require('mineflayer-auto-eat').loader
 const collector = require('mineflayer-collectblock').plugin
-const { Vec3 } = require('vec3')
 
 // Intrinsics
 const config = require('./puppeteerConfig')
 const state = require('./puppeteerState')
 const taskQueue = require('./puppeteerTaskQueue')
+const patches = require('./puppeteerMineflayerPatches')
 // Automata behaviour
 const behaviors = require('../Automata/puppeteerBehaviour')
 const environment = require('../Automata/puppeteerEnvironment')
@@ -45,37 +45,13 @@ const initBot = () => {
     state.bot.once('spawn', () => {
         state.ANY_READY = true
         state.mcData = require('minecraft-data')(state.bot.version)
-        state.movements = new Movements(state.bot)
-        state.movements.allow1by1towers = true
-        state.movements.canOpenDoors = true
 
         state.bot.autoEat.enableAuto()
         state.bot.autoEat.setOpts(config.AUTO_EAT_OPTIONS)
 
         // Handle explosion packets safely
         state.bot._client.removeAllListeners('explosion')
-        state.bot._client.on('explosion', (packet) => {
-            try {
-                // Validate knockback data before processing
-                if (packet.playerKnockback &&
-                    typeof packet.playerKnockback.x === 'number' &&
-                    typeof packet.playerKnockback.y === 'number' &&
-                    typeof packet.playerKnockback.z === 'number' &&
-                    isFinite(packet.playerKnockback.x) &&
-                    isFinite(packet.playerKnockback.y) &&
-                    isFinite(packet.playerKnockback.z)) {
-
-                    const knockback = new Vec3(
-                        packet.playerKnockback.x,
-                        packet.playerKnockback.y,
-                        packet.playerKnockback.z
-                    )
-                    state.bot.entity.velocity.add(knockback)
-                }
-            } catch (err) {
-                console.log('Explosion packet error caught:', err.message)
-            }
-        })
+        state.bot._client.on('explosion', patches.explosionHandlerFix)
     })
 
     state.bot.on('death', () => {
