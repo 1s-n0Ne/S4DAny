@@ -1,4 +1,4 @@
-def sombraMindState(promptString, OpenAIClient):
+def sombra_mind_state(promptString, OpenAIClient):
     # prompt = ''
     with open('Sombra/prompts/sombraCurriculum.md', 'r') as promptFile:
         prompt = promptFile.read()
@@ -28,12 +28,12 @@ def sombraMindState(promptString, OpenAIClient):
     return response.choices[0].message.content
 
 
-def executiveFunction(promptString, OpenAIClient):
+def executive_function(promptString, OpenAIClient):
     # prompt = ''
-    with open('Sombra/prompts/gulliverPuppeteer.md', 'r') as promptFile:
+    with open('Sombra/prompts/Puppeteer.md', 'r') as promptFile:
         prompt = promptFile.read()
 
-    generatedMindState = sombraMindState(promptString, OpenAIClient)
+    generatedMindState = sombra_mind_state(promptString, OpenAIClient)
 
     stateStart = promptString.find('Bioma:')
     stateString = '\n'.join(promptString[stateStart:].splitlines()[:-2])
@@ -66,7 +66,7 @@ def executiveFunction(promptString, OpenAIClient):
     return '\n'.join(generatedMindState.splitlines()[-2:]), instructions
 
 
-def callEgo(promptString, OpenAIClient):
+def call_ego(promptString, OpenAIClient):
     # prompt = ''
     with open('Sombra/prompts/anyInABottle.md', 'r') as promptFile:
         prompt = promptFile.read()

@@ -6,7 +6,7 @@ awake_url = 'http://127.0.0.1:3000/AnyUp'
 state_url = 'http://127.0.0.1:3000/GetInernal'
 
 
-def getAnyInternalState():
+def get_any_internal_state():
     try:
         res = requests.get(state_url)
         if res.status_code == 200:
@@ -17,7 +17,7 @@ def getAnyInternalState():
     return None
 
 
-def anyIsAwake():
+def any_is_awake():
     try:
         res = requests.get(awake_url)
         if res.status_code == 200:
@@ -26,7 +26,7 @@ def anyIsAwake():
         return False
 
 
-def sendCommand(command):
+def send_command(command):
     try:
         res = requests.post(url=command_url,
                             json={'command': command})

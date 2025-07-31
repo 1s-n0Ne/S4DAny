@@ -20,7 +20,7 @@ PLAYER_WHITELIST = [
 ]
 
 
-def Guardian(server, logLines):
+def guardian(server, logLines):
     for line in logLines:
         pattern = r"^(.*?) ha vuelto al vicio\.$"
 

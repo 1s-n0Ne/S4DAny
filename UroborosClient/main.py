@@ -11,13 +11,13 @@ from openai import OpenAI
 
 from collections import deque
 
-from Sentinel.helpers import parseCommands, antinomy
-from Thaumiel.Observer import Guardian
+from Sentinel.helpers import parse_commands, antinomy
+from Thaumiel.Observer import guardian
 import datetime
 from mcrcon import MCRcon
 
 
-def FilterAny(content: str, info_pattern, chat_pattern, FirstTime):
+def filter_any(content: str, info_pattern, chat_pattern, FirstTime):
     anyFilteredLines = []
 
     for line in content.splitlines():
@@ -60,7 +60,7 @@ def can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
         return False
 
 
-def GetNewLines(content: str, info_pattern, chat_pattern, FirstTime, extractGroup):
+def get_new_lines(content: str, info_pattern, chat_pattern, FirstTime, extractGroup):
     newLogLines = []
 
     for line in content.splitlines():
@@ -142,25 +142,37 @@ def main():
 
                 # New lines in the console
                 if content != '':
-                    anyFiltered = FilterAny(content, game_info_pattern, chat_pattern, FirstTime)
-                    _, gameLines = GetNewLines(content, game_info_pattern, chat_pattern, FirstTime, 1)
-                    FirstTime, logLines = GetNewLines(content, system_info_pattern, chat_pattern, FirstTime, 2)
+                    anyFiltered = filter_any(content,
+                                             game_info_pattern,
+                                             chat_pattern,
+                                             FirstTime)
+
+                    _, gameLines = get_new_lines(content,
+                                                 game_info_pattern,
+                                                 chat_pattern,
+                                                 FirstTime,
+                                                 1)
+                    FirstTime, logLines = get_new_lines(content,
+                                                        system_info_pattern,
+                                                        chat_pattern,
+                                                        FirstTime,
+                                                        2)
 
                     gameInfo['gameLinesBuffer'].extend(gameLines)
                     gameInfo['logLinesBuffer'].extend(logLines)
 
                     try:
-                        parseCommands(severRCON, gameLines, listeners, gameInfo, OAIClient)
-                        Guardian(severRCON, gameLines)
+                        parse_commands(severRCON, gameLines, listeners, gameInfo, OAIClient)
+                        guardian(severRCON, gameLines)
                     except Exception:
                         traceback.print_exc()
 
                     print(anyFiltered)
 
-                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry, CALLS_WINDOW, MAX_CALLS_PER_MINUTE):
-                        # Antinomy not ready
+                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry,
+                                                                  CALLS_WINDOW,
+                                                                  MAX_CALLS_PER_MINUTE):
                         antinomy(gameInfo, OAIClient)
-                        #pass
 
             previousContent = f.read()
             time.sleep(0.25)

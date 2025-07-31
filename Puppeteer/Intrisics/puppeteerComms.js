@@ -304,7 +304,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'hunt') {
         if (args.length < 2) {
-            console.log('Usage: hunt <mob_type> [max_count]')
+            console.log('Usage: hunt [mob_type] [max_count]')
             return
         }
 

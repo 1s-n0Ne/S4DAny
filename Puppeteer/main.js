@@ -10,6 +10,9 @@ const state = require('./Intrisics/puppeteerState')
 const taskQueue = require('./Intrisics/puppeteerTaskQueue')
 const comms = require('./Intrisics/puppeteerComms')
 
+// For internal state
+const environment = require('./Automata/puppeteerEnvironment')
+
 // Express app setup
 const app = express()
 app.use(express.json())
@@ -48,6 +51,15 @@ rl.on('line', (input) => {
 // REST API endpoints
 app.get('/AnyUp', (req, res) => {
     res.send(state.ANY_READY)
+})
+
+app.get('/GetInernal',(req, res) => {
+    try {
+        res.send(environment.getInternalState(state.bot))
+    } catch(e) {
+        console.log(e)
+        res.status(500).send('Any is not ready')
+    }
 })
 
 app.post('/Command', async (req, res) => {
