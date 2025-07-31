@@ -7,7 +7,6 @@ import re
 def parsel3(module, phrase):
     rawP = phrase
     phrase = phrase.lower()
-    print(phrase)
 
     if module == 'ego':
         if phrase == 'trigger response':
@@ -37,7 +36,6 @@ def parse_command(command):
     l2 = {'start ap', 'stop ap', 's4d core module', 'select gulliver', 'select sombra', 'select ego', 's4d core module'}
 
     for phrase in phrases:
-        # print(phrase)
         rawPhrase = phrase
         phrase = phrase.replace('.', '').lower()
 
@@ -89,23 +87,6 @@ def you_are_alone(server, username):
     server.command(f'title {username} actionbar ' + '{"text":"Pero no vino nadie...","italic":true,"color":"gray"}')
 
 
-def gulliver_sanitize(command):
-    forbidden = {'diamond', 'beacon', 'wither', 'warden', 'enchant', 'op', 'gamemode', 'netherite'}
-    words = command.lower().split(' ')
-    args = []
-    for w in words:
-        args += w.split('_')
-
-    for a in args:
-        if a in forbidden:
-            return False
-        for f in forbidden:
-            if f in a:
-                return False
-
-    return True
-
-
 def assert_command(commandRes):
     errorHints = ['error', 'desconocido', 'incorrect', "can't", 'required', 'not']
     for hint in errorHints:
@@ -120,7 +101,7 @@ def run_system_call(server, cmd, gameInfo, OAIClient):
     # [('select sombra', ['get mindstate']), ('select gulliver', [('baritone', ['goal Stone'])])]
     # [('select gulliver', [('paper', ['kill QuesoBadasDabas'])])]
 
-    print(cmd)
+    print(f'Received command tree: {cmd}')
 
     if cmd[0] == 'start ap':
         if not comm.any_is_awake():
@@ -143,9 +124,6 @@ def run_system_call(server, cmd, gameInfo, OAIClient):
                 return True
             return False
         elif gulliverCmd[0] == 'paper':
-            if not gulliver_sanitize(gulliverCmd[1][0]):
-                print(f'Command: {gulliverCmd[1][0]} rejected')
-                return -1
             res = server.command(gulliverCmd[1][0])
             return assert_command(res.lower())
 
@@ -252,28 +230,20 @@ def parse_commands(server, logLines, listeners, gameInfo, OAIClient):
     username = match.group(1)
     msg = match.group(2)
 
-    print(f"This is a command: {msg}")
-
     if username not in listeners:
         you_are_alone(server, username)
         return
 
     try:
         cmdList = parse_command(msg)['system call']
-        print(cmdList)
+        #print(cmdList)
 
         if len(cmdList) == 0:
             show_failure_effect(server, username)
         for cmd in cmdList:
             res = run_system_call(server, cmd, gameInfo, OAIClient)
-            if res == -1:
-                show_forbidden(server, username)
-                listeners[username] = 4
-            elif res:
+            if res:
                 show_success_effects(server, username)
-                listeners[username] = (listeners[username] + 1) % 6
-                server.command(f'damage {username} {2**listeners[username]}')
-                print('Listeners log:', listeners)
             else:
                 show_failure_effect(server, username)
 

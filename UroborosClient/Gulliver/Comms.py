@@ -1,10 +1,8 @@
 import requests
 
-
 command_url = 'http://127.0.0.1:3000/Command'
 awake_url = 'http://127.0.0.1:3000/AnyUp'
 state_url = 'http://127.0.0.1:3000/GetInernal'
-
 
 def get_any_internal_state():
     try:
@@ -12,8 +10,7 @@ def get_any_internal_state():
         if res.status_code == 200:
             return res.text
     except requests.exceptions.ConnectionError:
-        with open('logs/sombralatest.log', 'a') as f:
-            print('[Puppeteer] Could not connect to Puppeteer', file=f)
+            print('[Puppeteer] Could not connect to Puppeteer')
     return None
 
 

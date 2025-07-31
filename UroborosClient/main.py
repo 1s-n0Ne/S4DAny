@@ -12,7 +12,6 @@ from openai import OpenAI
 from collections import deque
 
 from Sentinel.helpers import parse_commands, antinomy
-from Thaumiel.Observer import guardian
 import datetime
 from mcrcon import MCRcon
 
@@ -31,7 +30,6 @@ def filter_any(content: str, info_pattern, chat_pattern, FirstTime):
                 anyFilteredLines.append(some_info)
             if FirstTime is True and 'Timings Reset' in some_info:
                 FirstTime = False
-                # some_info = 'S4D Any Chat Log ready!'
 
         # If the chat line matched, extract and print chat text
         elif chat_match:
@@ -106,13 +104,7 @@ def main():
         'enmaCaptured': True
     }
 
-    listeners = {'Deltax10': 0,
-                 '1s_n0Ne': 0,
-                 'TheAdminstrator': 0,
-                 'QuesoBadasDabas': 0,
-                 'LordAngel1124': 0,
-                 'MetalDarken09'
-                 'AiMisao': 0}
+    listeners = ['TheAdminstrator']
 
     # Rates
     MAX_CALLS_PER_MINUTE = 5
@@ -163,11 +155,8 @@ def main():
 
                     try:
                         parse_commands(severRCON, gameLines, listeners, gameInfo, OAIClient)
-                        guardian(severRCON, gameLines)
                     except Exception:
                         traceback.print_exc()
-
-                    print(anyFiltered)
 
                     if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry,
                                                                   CALLS_WINDOW,
