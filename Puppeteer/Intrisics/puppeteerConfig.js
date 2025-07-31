@@ -115,6 +115,11 @@ module.exports = {
     WANDERING_DURATION: 30000, // 30 seconds
     ITEM_PICKUP_RANGE: 10,
 
+    // Follow area bounds
+    STATIONARY_AREA_SIZE: 10, // 10x10 area
+    STATIONARY_HEIGHT: 3, // 3 blocks height
+    STATIONARY_TIME_THRESHOLD: 5000, // 10 seconds
+
     // Auto-eat configuration
     AUTO_EAT_OPTIONS: {
         minHunger: 20,

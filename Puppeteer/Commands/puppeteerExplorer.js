@@ -6,7 +6,7 @@ async function findBlock(bot, blockName) {
     const mcData = require('minecraft-data')(bot.version)
     const blockId = mcData.blocksByName[blockName].id
 
-    // Search for crafting tables within 32 blocks
+    // Search for block within 32 blocks
     const blocksMatch = bot.findBlocks({
         matching: blockId,
         maxDistance: 32,
@@ -25,10 +25,10 @@ async function findBlock(bot, blockName) {
         return distA - distB
     })
 
-    // Return the first valid crafting table block
+    // Return the first valid block
     for (const pos of blocksMatch) {
         const block = bot.blockAt(pos)
-        if (block && block.name === 'crafting_table') {
+        if (block && block.name === blockName) {
             return block
         }
     }
@@ -42,7 +42,7 @@ async function moveToBlock(bot, block) {
 
     console.log(`Moving to ${block.name} at (${pos.x}, ${pos.y}, ${pos.z})`)
 
-    // Set goal to get near the crafting table (within 3 blocks)
+    // Set goal to get near the block (within 3 blocks)
     bot.pathfinder.setGoal(new goals.GoalNear(pos.x, pos.y, pos.z, 3))
 
     // Wait for pathfinding to complete
@@ -75,8 +75,10 @@ async function moveToBlock(bot, block) {
         }, 15000)
     })
 
-    // Look at the crafting table
-    await bot.lookAt(block.position.offset(0.5, 0.5, 0.5))
+    // Look at the block
+    if (block.position.offset) {
+        await bot.lookAt(block.position.offset(0.5, 0.5, 0.5))
+    }
 }
 
 // Find and go to a specific block type using existing findBlock and moveToBlock functions

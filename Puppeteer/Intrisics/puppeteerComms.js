@@ -7,7 +7,8 @@ const pinit = require('./puppeteerInitialize')
 const mining = require('../Commands/puppeteerMining')
 const placement = require('../Commands/puppeteerPlacement')
 const crafting = require('../Commands/puppeteerCrating')
-const explorer = require("../Commands/puppeteerExplorer");
+const explorer = require("../Commands/puppeteerExplorer")
+const following = require('../Commands/puppeteerFollowing')
 
 // Function to process commands (used by both REST and console)
 const processCommand = (commandString, source = 'unknown') => {
@@ -81,6 +82,28 @@ const processCommand = (commandString, source = 'unknown') => {
         const message = args.join(' ')
 
         state.bot.chat(message)
+    }
+
+    if (args[0] === 'follow') {
+        if (args.length < 2) {
+            console.log('Usage: follow <player_name>')
+            return
+        }
+
+        const playerName = args[1]
+
+        taskQueue.enqueue({
+            name: `follow: ${playerName}`,
+            execute: async () => {
+                return await following.followPlayer(state.bot, playerName)
+            },
+            cancel: following.stopFollowing(state.bot)
+        })
+    }
+
+    if (args[0] === 'unfollow' || args[0] === 'stopfollow') {
+        const result = following.stopFollowing(state.bot)
+        console.log(result.message)
     }
 
     if (args[0] === 'mine') {

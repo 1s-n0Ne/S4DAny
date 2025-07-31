@@ -29,6 +29,13 @@ class BotState {
         this.isInCombat = false
         this.isRetreating = false
         this.retreatStartTime = 0
+
+        this.isFollowing = false
+        this.followingTarget = null
+        this.followingStartTime = 0
+        this.targetLastPosition = null
+        this.targetStationaryStartTime = 0
+        this.targetStationaryArea = null
     }
 
     // Reset all idle behaviors
