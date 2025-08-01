@@ -3,12 +3,15 @@ const { goals } = require('mineflayer-pathfinder')
 
 const explorer = require('./puppeteerExplorer')
 
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Crafting')
+
 // Craft using 2x2 player inventory grid
 async function craftSmall(bot, itemName, amount = 1) {
     const mcData = require('minecraft-data')(bot.version)
     const Recipe = require('prismarine-recipe')(bot.version).Recipe
 
-    console.log(`Attempting to craft ${itemName} x${amount}`)
+    log.info(`Attempting to craft ${itemName} x${amount}`)
 
     // Validate item exists
     const itemType = mcData.itemsByName[itemName]
@@ -43,7 +46,7 @@ async function craft(bot, itemName, amount = 1) {
     const mcData = require('minecraft-data')(bot.version)
     const Recipe = require('prismarine-recipe')(bot.version).Recipe
 
-    console.log(`Attempting to craft ${itemName} x${amount} using crafting table`)
+    log.info(`Attempting to craft ${itemName} x${amount} using crafting table`)
 
     // Validate item exists
     const itemType = mcData.itemsByName[itemName]
@@ -64,13 +67,13 @@ async function craft(bot, itemName, amount = 1) {
     }
 
     // Find nearest crafting table
-    console.log('Looking for crafting table...')
+    log.info('Looking for crafting table...')
     const craftingTable = await explorer.findBlock(bot,'crafting_table')
     if (!craftingTable) {
         throw new Error('No crafting table found nearby')
     }
 
-    console.log(`Found crafting table at ${craftingTable.position}`)
+    log.info(`Found crafting table at ${craftingTable.position}`)
 
     // Move to crafting table
     await explorer.moveToBlock(bot, craftingTable)
@@ -85,7 +88,7 @@ async function craft(bot, itemName, amount = 1) {
     }
 
     // No need to open the crafting table - bot.craft handles that internally
-    console.log('Ready to craft...')
+    log.info('Ready to craft...')
 
     try {
         // Perform crafting - pass the block, not a window
@@ -103,7 +106,7 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
     const resultCount = recipe.result.count || 1
     const craftTimes = Math.ceil(amount / resultCount)
 
-    console.log(`Will craft ${craftTimes} times to get ${amount} ${itemName}`)
+    log.info(`Will craft ${craftTimes} times to get ${amount} ${itemName}`)
 
     let totalCrafted = 0
 
@@ -115,7 +118,7 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
         try {
             // Check if we still have ingredients
             if (!canCraftRecipe(bot, recipe)) {
-                console.log('Out of ingredients')
+                log.warn('Out of ingredients')
                 break
             }
 
@@ -127,7 +130,9 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
             const errorHandler = (err) => {
                 if (err.message && err.message.includes('PartialReadError')) {
                     protocolError = err
-                    console.error('Protocol error detected during crafting:', err.message)
+                    log.error('Protocol error detected during crafting:', {
+                        stack: err.stack
+                    })
                 }
             }
 
@@ -151,9 +156,9 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
 
                 if (actualCrafted > 0) {
                     totalCrafted += actualCrafted
-                    console.log(`Crafted ${actualCrafted} ${itemName}. Total: ${totalCrafted}`)
+                    log.info(`Crafted ${actualCrafted} ${itemName}. Total: ${totalCrafted}`)
                 } else {
-                    console.log(`Craft appears to have failed - no items were created`)
+                    log.warn(`Craft appears to have failed - no items were created`)
                     throw new Error('Craft failed - no items created')
                 }
 
@@ -166,12 +171,12 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
             await new Promise(resolve => setTimeout(resolve, 300))
 
         } catch (error) {
-            console.error(`Craft failed on attempt ${i + 1}: ${error.message}`)
+            log.error(`Craft failed on attempt ${i + 1}: ${error.message}`)
 
             // If it's a protocol error, we might want to abort completely
             if (error.message.includes('Protocol error')) {
-                console.log('Aborting crafting due to protocol error')
-                break
+                log.error('Aborting crafting due to protocol error')
+                throw new Error('Craft failed - protocol error')
             }
         }
     }
@@ -188,7 +193,7 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
         throw new Error(`Failed to craft any ${itemName}`)
     }
 
-    console.log(`Successfully crafted ${totalCrafted} ${itemName}`)
+    log.info(`Successfully crafted ${totalCrafted} ${itemName}`)
 
     return {
         success: true,

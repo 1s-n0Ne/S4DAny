@@ -1,6 +1,10 @@
 // puppeteerMine.js - Simple mine command implementation
 const { goals } = require('mineflayer-pathfinder')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Explorer')
+
 // Find nearest crafting table
 async function findBlock(bot, blockName) {
     const mcData = require('minecraft-data')(bot.version)
@@ -40,7 +44,7 @@ async function findBlock(bot, blockName) {
 async function moveToBlock(bot, block) {
     const pos = block.position
 
-    console.log(`Moving to ${block.name} at (${pos.x}, ${pos.y}, ${pos.z})`)
+    log.info(`Moving to ${block.name} at (${pos.x}, ${pos.y}, ${pos.z})`)
 
     // Set goal to get near the block (within 3 blocks)
     bot.pathfinder.setGoal(new goals.GoalNear(pos.x, pos.y, pos.z, 3))
@@ -83,7 +87,7 @@ async function moveToBlock(bot, block) {
 
 // Find and go to a specific block type using existing findBlock and moveToBlock functions
 async function gotoBlock(bot, blockName) {
-    console.log(`Looking for ${blockName}...`)
+    log.info(`Looking for ${blockName}...`)
 
     // Use the existing findBlock function to locate the block
     const block = await findBlock(bot, blockName)
@@ -92,7 +96,7 @@ async function gotoBlock(bot, blockName) {
         throw new Error(`No ${blockName} found within search range`)
     }
 
-    console.log(`Found ${blockName} at (${block.position.x}, ${block.position.y}, ${block.position.z})`)
+    log.info(`Found ${blockName} at (${block.position.x}, ${block.position.y}, ${block.position.z})`)
 
     // Use the existing moveToBlock function to move to it
     await moveToBlock(bot, block)
@@ -111,7 +115,7 @@ async function gotoPosition(bot, x, y, z) {
     const targetY = Math.floor(y)
     const targetZ = Math.floor(z)
 
-    console.log(`Moving to position (${targetX}, ${targetY}, ${targetZ})`)
+    log.info(`Moving to position (${targetX}, ${targetY}, ${targetZ})`)
 
     // Create a virtual block object at the target position
     const virtualBlock = {
@@ -126,7 +130,7 @@ async function gotoPosition(bot, x, y, z) {
         // Use moveToBlock function under the hood
         await moveToBlock(bot, virtualBlock)
 
-        console.log(`Successfully reached position (${targetX}, ${targetY}, ${targetZ})`)
+        log.info(`Successfully reached position (${targetX}, ${targetY}, ${targetZ})`)
         return {
             success: true,
             position: { x: targetX, y: targetY, z: targetZ },

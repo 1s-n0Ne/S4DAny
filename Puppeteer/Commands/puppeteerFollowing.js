@@ -3,6 +3,10 @@ const { Movements, goals } = require('mineflayer-pathfinder')
 const config = require('../Intrisics/puppeteerConfig')
 const state = require('../Intrisics/puppeteerState')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Following')
+
 function checkIfTargetStationary(currentTargetPos, currentTime) {
     // If we don't have a previous position, record current position
     if (!state.targetLastPosition) {
@@ -53,7 +57,7 @@ function checkIfTargetStationary(currentTargetPos, currentTime) {
 }
 
 async function followPlayer(bot, playerName) {
-    console.log(`Starting to follow ${playerName}`)
+    log.info(`Starting to follow ${playerName}`)
 
     // Initialize following state
     state.isFollowing = true
@@ -77,7 +81,7 @@ async function followPlayer(bot, playerName) {
             // Check if target player still exists
             const targetPlayer = bot.players[state.followingTarget]?.entity
             if (!targetPlayer || !targetPlayer.isValid) {
-                console.log(`Lost target player: ${state.followingTarget}`)
+                log.warn(`Lost target player: ${state.followingTarget}`)
                 cleanup()
                 resolve({
                     success: true,
@@ -98,7 +102,7 @@ async function followPlayer(bot, playerName) {
 
             // Stop only if BOTH conditions are met
             if (isWithinRange && isTargetStationary) {
-                console.log(`Stop conditions met: within range (${distanceToTarget.toFixed(1)} blocks) AND target stationary for ${(stationaryCheckResult.stationaryDuration / 1000).toFixed(1)}s`)
+                log.info(`Stop conditions met: within range (${distanceToTarget.toFixed(1)} blocks) AND target stationary for ${(stationaryCheckResult.stationaryDuration / 1000).toFixed(1)}s`)
                 cleanup()
                 resolve({
                     success: true,
@@ -110,14 +114,14 @@ async function followPlayer(bot, playerName) {
 
             // Optional: Log current status for debugging
             if (isWithinRange) {
-                console.log(`Within range (${distanceToTarget.toFixed(1)} blocks) but target is still moving`)
+                log.debug(`Within range (${distanceToTarget.toFixed(1)} blocks) but target is still moving`)
             } else if (isTargetStationary) {
-                console.log(`Target stationary for ${(stationaryCheckResult.stationaryDuration / 1000).toFixed(1)}s but not within range (${distanceToTarget.toFixed(1)} blocks)`)
+                log.debug(`Target stationary for ${(stationaryCheckResult.stationaryDuration / 1000).toFixed(1)}s but not within range (${distanceToTarget.toFixed(1)} blocks)`)
             }
 
             // Check if we should stop following (external stop)
             if (!state.isFollowing) {
-                console.log('Following was stopped externally')
+                log.info('Following was stopped externally')
                 cleanup()
                 resolve({
                     success: true,
@@ -136,11 +140,10 @@ async function followPlayer(bot, playerName) {
                 // Use GoalFollow for smooth following behavior, stay 3-4 blocks away
                 const goal = new goals.GoalFollow(targetPlayer, 3)
                 bot.pathfinder.setGoal(goal, true)
-
-                console.log(`Following ${state.followingTarget} (distance: ${distanceToTarget.toFixed(1)} blocks)`)
+                log.info(`Following ${state.followingTarget} (distance: ${distanceToTarget.toFixed(1)} blocks)`)
 
             } catch (error) {
-                console.error('Error updating follow goal:', error)
+                log.error(`Error updating follow goal: ${error.message}`, { stack: error.stack })
                 cleanup()
                 reject(new Error(`Failed to update follow goal: ${error.message}`))
                 return
@@ -165,13 +168,13 @@ async function followPlayer(bot, playerName) {
 
         // Error handlers
         const onError = (error) => {
-            console.error('Bot error during following:', error)
+            log.error(`Bot error during following: ${error.message}`, { stack: error.stack })
             cleanup()
             reject(new Error(`Bot error: ${error.message}`))
         }
 
         const onEnd = () => {
-            console.log('Bot disconnected during following')
+            log.warn('Bot disconnected during following')
             cleanup()
             reject(new Error('Bot disconnected'))
         }
@@ -203,7 +206,7 @@ async function followPlayer(bot, playerName) {
 
 function stopFollowing(bot) {
     if (state.isFollowing) {
-        console.log(`Stopping follow of ${state.followingTarget}`)
+        log.info(`Stopping follow of ${state.followingTarget}`)
         state.isFollowing = false
 
         if (bot && bot.pathfinder) {

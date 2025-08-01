@@ -1,6 +1,10 @@
 const state = require("./puppeteerState");
 const {Vec3} = require("vec3")
 
+// Import logging
+const { createModuleLogger } = require('./puppeteerLogger')
+const log = createModuleLogger('MineflayerPatch')
+
 // Mineflayer explosion event broken for 1.21.4
 function explosionHandlerFix(packet){
     try {
@@ -21,7 +25,9 @@ function explosionHandlerFix(packet){
             state.bot.entity.velocity.add(knockback)
         }
     } catch (err) {
-        console.log('Explosion packet error caught:', err.message)
+        log.error('Explosion packet error caught:', {
+            stack: err.stack
+        })
     }
 }
 

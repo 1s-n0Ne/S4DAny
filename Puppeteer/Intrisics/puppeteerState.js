@@ -1,4 +1,7 @@
 // state.js - Centralized state management
+const { createModuleLogger } = require('./puppeteerLogger')
+const log = createModuleLogger('State')
+
 class BotState {
     constructor() {
         // Connection state
@@ -41,7 +44,7 @@ class BotState {
     // Reset all idle behaviors
     resetAllIdleBehaviors() {
         if (this.isWandering) {
-            console.log('Stopping wandering')
+            log.info('Stopping wandering')
             this.isWandering = false
             this.targetMob = null
         }
@@ -59,7 +62,7 @@ class BotState {
     // Stop item pickup behavior
     stopItemPickup() {
         if (this.isPickingUpItem) {
-            console.log('Stopping item pickup')
+            log.info('Stopping item pickup')
             this.isPickingUpItem = false
             this.targetItem = null
             if (this.bot && this.bot.pathfinder) {
@@ -71,7 +74,7 @@ class BotState {
     // Stop combat behavior
     stopCombat() {
         if (this.isInCombat || this.isRetreating) {
-            console.log('Stopping combat')
+            log.info('Stopping combat')
             this.isInCombat = false
             this.isRetreating = false
             if (this.bot && this.bot.pathfinder) {

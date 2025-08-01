@@ -2,15 +2,19 @@
 const armor = require('../Automata/puppeteerArmor')
 const explorer = require('./puppeteerExplorer')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Hunting')
+
 async function hunt(bot, mobType, maxCount = null) {
-    console.log(`Starting hunt for ${mobType}${maxCount ? ` (max: ${maxCount})` : ' (all nearby)'}`)
+    log.info(`Starting hunt for ${mobType}${maxCount ? ` (max: ${maxCount})` : ' (all nearby)'}`)
 
     // Equip combat gear at the start
     try {
         await armor.equipSword(bot)
         await armor.equipShield(bot)
     } catch (error) {
-        console.error('Failed to equip combat gear:', error.message)
+        log.error(`Failed to equip combat gear: ${error.message}`)
     }
 
     let hunted = 0
@@ -26,7 +30,7 @@ async function hunt(bot, mobType, maxCount = null) {
 
         if (targets.length === 0) {
             // No mobs found, try exploring
-            console.log(`No ${mobType} found nearby, exploring... (attempt ${exploreAttempts + 1}/${maxExploreAttempts})`)
+            log.warn(`No ${mobType} found nearby, exploring... (attempt ${exploreAttempts + 1}/${maxExploreAttempts})`)
 
             try {
                 await explorer.randomExplore(bot, 16, 48)
@@ -36,7 +40,7 @@ async function hunt(bot, mobType, maxCount = null) {
                 await new Promise(resolve => setTimeout(resolve, 2000))
                 continue
             } catch (error) {
-                console.error('Exploration failed:', error.message)
+                log.error(`Exploration failed: ${error.message}`)
                 exploreAttempts++
                 continue
             }
@@ -56,7 +60,7 @@ async function hunt(bot, mobType, maxCount = null) {
             if (maxCount !== null && hunted >= maxCount) break
 
             try {
-                console.log(`Attacking ${mobType} at ${target.position.toString()}`)
+                log.info(`Attacking ${mobType} at ${target.position.toString()}`)
 
                 // Use PvP plugin to attack
                 await bot.pvp.attack(target)
@@ -90,13 +94,13 @@ async function hunt(bot, mobType, maxCount = null) {
                 })
 
                 hunted++
-                console.log(`Successfully hunted ${mobType}. Total: ${hunted}`)
+                log.info(`Successfully hunted ${mobType}. Total: ${hunted}`)
 
                 // Small delay between targets
                 await new Promise(resolve => setTimeout(resolve, 1000))
 
             } catch (error) {
-                console.error(`Failed to hunt ${mobType}: ${error.message}`)
+                log.error(`Failed to hunt ${mobType}: ${error.message}`)
 
                 // Stop current attack if any
                 await bot.pvp.stop()
@@ -116,11 +120,11 @@ async function hunt(bot, mobType, maxCount = null) {
     const success = hunted > 0
 
     if (!success) {
-        console.log(`Hunt failed. Could not find any ${mobType} to hunt after ${maxExploreAttempts} exploration attempts`)
+        log.warn(`Hunt failed. Could not find any ${mobType} to hunt after ${maxExploreAttempts} exploration attempts`)
         throw new Error(`No ${mobType} found after exploring ${maxExploreAttempts} times`)
     }
 
-    console.log(`Hunt completed. Hunted ${hunted} ${mobType}(s)`)
+    log.info(`Hunt completed. Hunted ${hunted} ${mobType}(s)`)
 
     return {
         success: true,

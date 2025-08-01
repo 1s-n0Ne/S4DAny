@@ -1,6 +1,10 @@
 // armor.js - Armor management functionality
 const config = require('../Intrisics/puppeteerConfig')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Armor')
+
 function getArmorType(itemName) {
     if (itemName.includes('helmet')) return 'helmet'
     if (itemName.includes('chestplate')) return 'chestplate'
@@ -98,7 +102,7 @@ async function checkAndUpgradeArmor(bot) {
 
             // If we found a better item, swap it
             if (bestItem) {
-                console.log(`Upgrading ${slotType}: ${equippedItem?.name || 'empty'} -> ${bestItem.name}`)
+                log.info(`Upgrading ${slotType}: ${equippedItem?.name || 'empty'} -> ${bestItem.name}`)
 
                 // Unequip current armor if any
                 if (equippedItem) {
@@ -113,7 +117,7 @@ async function checkAndUpgradeArmor(bot) {
         }
 
     } catch (error) {
-        console.error('Error during armor upgrade:', error)
+        log.error('Error during armor upgrade:', {stack: error.stack})
     }
 }
 
@@ -125,7 +129,7 @@ async function equipSword(bot) {
 
     if (swords.length > 0) {
         // Sort by material quality
-        console.log(`There are ${swords.length} swords in the inventory`)
+        log.debug(`There are ${swords.length} swords in the inventory`)
         const swordPriority = {
             'netherite_sword': 5,
             'diamond_sword': 4,
@@ -136,7 +140,7 @@ async function equipSword(bot) {
         }
 
         swords.sort((a, b) => (swordPriority[b.name] || 0) - (swordPriority[a.name] || 0))
-        console.log(`Equiping ${swords[0].name}`)
+        log.debug(`Equiping ${swords[0].name}`)
         await bot.equip(swords[0], 'hand')
     }
 }

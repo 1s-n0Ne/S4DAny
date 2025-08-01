@@ -1,19 +1,23 @@
 const explorer = require('./puppeteerExplorer')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Mining')
+
 async function mine(bot, blockNames, targetCount) {
     const mcData = require('minecraft-data')(bot.version)
 
     // Convert block names to IDs
     const blockTypes = []
     for (const blockName of blockNames) {
-        // Special case: bedrock is never mineable
+        // Special case: bedrock is never harvestable
         if (blockName === 'bedrock') {
             throw new Error('Cannot mine bedrock - it is unbreakable')
         }
 
         const blockType = mcData.blocksByName[blockName]
         if (!blockType) {
-            console.log(`Unknown block type: ${blockName}`)
+            log.warn(`Unknown block type: ${blockName}`)
             continue
         }
         blockTypes.push(blockType.id)
@@ -29,7 +33,7 @@ async function mine(bot, blockNames, targetCount) {
     let foundUnharvestableBlock = false
     let unharvestableBlockName = ''
 
-    console.log(`Starting to mine ${blockNames.join(', ')} x${targetCount}`)
+    log.info(`Starting to mine ${blockNames.join(', ')} x${targetCount}`)
 
     while (totalMined < targetCount && !foundUnharvestableBlock) {
         // Find blocks
@@ -42,11 +46,11 @@ async function mine(bot, blockNames, targetCount) {
         if (blocks.length === 0) {
             // No blocks found, try exploring
             if (exploreAttempts >= maxExploreAttempts) {
-                console.log(`No more blocks found after ${maxExploreAttempts} exploration attempts`)
+                log.warn(`No more blocks found after ${maxExploreAttempts} exploration attempts`)
                 break
             }
 
-            console.log(`No blocks found, exploring... (attempt ${exploreAttempts + 1}/${maxExploreAttempts})`)
+            log.warn(`No blocks found, exploring... (attempt ${exploreAttempts + 1}/${maxExploreAttempts})`)
 
             try {
                 await explorer.randomExplore(bot, 32, 64)
@@ -55,7 +59,7 @@ async function mine(bot, blockNames, targetCount) {
                 await new Promise(resolve => setTimeout(resolve, 1000))
                 continue
             } catch (error) {
-                console.error('Exploration failed:', error.message)
+                log.error(`Exploration failed: ${error.message}`)
                 exploreAttempts++
                 continue
             }
@@ -84,26 +88,26 @@ async function mine(bot, blockNames, targetCount) {
             const digTime = block.digTime(heldItemId)
 
             if (!canHarvest || digTime === Infinity) {
-                console.log(`Cannot harvest ${block.name} at ${pos} with current tool (held item: ${heldItem ? heldItem.name : 'empty hand'})`)
+                log.warn(`Cannot harvest ${block.name} at ${pos} with current tool (held item: ${heldItem ? heldItem.name : 'empty hand'})`)
 
                 // Check if any tool in inventory could harvest this
                 let foundUsableTool = false
                 for (const item of bot.inventory.items()) {
                     if (block.canHarvest(item.type)) {
                         try {
-                            console.log(`Equipping ${item.name} to harvest ${block.name}`)
+                            log.info(`Equipping ${item.name} to harvest ${block.name}`)
                             await bot.equip(item, 'hand')
                             foundUsableTool = true
                             harvestableTargets.push(block)
                             break
                         } catch (err) {
-                            console.error(`Failed to equip ${item.name}: ${err.message}`)
+                            log.error(`Failed to equip ${item.name}: ${err.message}`)
                         }
                     }
                 }
 
                 if (!foundUsableTool) {
-                    console.log(`No tool in inventory can harvest ${block.name}`)
+                    log.warn(`No tool in inventory can harvest ${block.name}`)
                     foundUnharvestableBlock = true
                     unharvestableBlockName = block.name
                     break
@@ -119,11 +123,11 @@ async function mine(bot, blockNames, targetCount) {
         }
 
         if (harvestableTargets.length === 0) {
-            console.log('No harvestable targets found, exploring...')
+            log.warn('No harvestable targets found, exploring...')
             try {
                 await explorer.randomExplore(bot, 16, 32)
             } catch (error) {
-                console.error('Recovery exploration failed:', error.message)
+                log.error(`Recovery exploration failed: ${error.message}`)
             }
             continue
         }
@@ -133,7 +137,7 @@ async function mine(bot, blockNames, targetCount) {
             let collectCompleted = false
             const safetyTimeout = setTimeout(() => {
                 if (!collectCompleted) {
-                    console.error('Mining taking too long, likely stuck')
+                    log.warn('Mining taking too long, likely stuck')
                     // Force stop any ongoing collection
                     if (bot.pathfinder) {
                         bot.pathfinder.setGoal(null)
@@ -147,9 +151,9 @@ async function mine(bot, blockNames, targetCount) {
             clearTimeout(safetyTimeout)
 
             totalMined += harvestableTargets.length
-            console.log(`Mined ${harvestableTargets.length} blocks. Total: ${totalMined}/${targetCount}`)
+            log.info(`Mined ${harvestableTargets.length} blocks. Total: ${totalMined}/${targetCount}`)
         } catch (error) {
-            console.error('Failed to collect blocks:', error.message)
+            log.error(`Failed to collect blocks: ${error.message}`)
 
             // Check if the error is because we can't harvest the block
             if (error.message.includes('dig') || error.message.includes('harvest')) {
@@ -160,7 +164,7 @@ async function mine(bot, blockNames, targetCount) {
             try {
                 await explorer.randomExplore(bot, 16, 32)
             } catch (exploreError) {
-                console.error('Recovery exploration failed:', exploreError.message)
+                log.error(`Recovery exploration failed: ${exploreError.message}`)
             }
         }
     }
@@ -174,7 +178,7 @@ async function mine(bot, blockNames, targetCount) {
         }
     }
 
-    console.log(`Mining completed. Mined ${totalMined} out of ${targetCount} requested blocks`)
+    log.info(`Mining completed. Mined ${totalMined} out of ${targetCount} requested blocks`)
     return {
         requested: targetCount,
         mined: totalMined,

@@ -3,6 +3,10 @@ const state = require('../Intrisics/puppeteerState')
 const taskQueue = require('../Intrisics/puppeteerTaskQueue')
 const pinit = require('./puppeteerInitialize')
 
+// Import logging
+const { createModuleLogger } = require('./puppeteerLogger')
+const log = createModuleLogger('Comms')
+
 // Puppeteer Commands
 const mining = require('../Commands/puppeteerMining')
 const placement = require('../Commands/puppeteerPlacement')
@@ -13,13 +17,13 @@ const hunting = require('../Commands/puppeteerHunting')
 
 // Function to process commands (used by both REST and console)
 const processCommand = (commandString, source = 'unknown') => {
-    console.log(`Received command from ${source}: ${commandString}`)
+    log.info(`Received command from ${source}: ${commandString}`)
     let args = commandString.split(' ')
 
     if (args[0] === 'start') {
         if (!state.ANY_READY) {
             state.ANY_SHOULD_LOG_IN = true
-            console.log("Starting Any")
+            log.info("Starting Any")
             pinit.initBot()
         }
     }
@@ -38,43 +42,33 @@ const processCommand = (commandString, source = 'unknown') => {
         }
     }
 
-    if (args[0] === 'exit') {
-        console.log('Shutting down...')
-        if (state.ANY_READY && state.bot) {
-            taskQueue.stop()
-            taskQueue.clear()
-            state.bot.quit()
-        }
-        process.exit(0)
-    }
-
         // Queue status commands (don't need to be queued)
     if (args[0] === 'queue') {
         if (args[1] === 'status') {
             const status = taskQueue.getStatus()
-            console.log('Queue Status:', JSON.stringify(status, null, 2))
+            log.info('Queue Status: ' + JSON.stringify(status, null, 2))
             return
         }
         if (args[1] === 'clear') {
             taskQueue.clear()
-            console.log('Queue cleared')
+            log.info('Queue cleared')
             return
         }
         if (args[1] === 'stop') {
             taskQueue.stop()
-            console.log('Queue stopped')
+            log.info('Queue stopped')
             return
         }
         if (args[1] === 'resume') {
             taskQueue.resume()
-            console.log('Queue resumed')
+            log.info('Queue resumed')
             return
         }
     }
 
     // Commands that need the bot to be ready
     if (!state.ANY_READY) {
-        console.log('Bot is not ready yet')
+        log.info('Bot is not ready yet')
         return
     }
 
@@ -87,7 +81,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'follow') {
         if (args.length < 2) {
-            console.log('Usage: follow <player_name>')
+            log.warn('Usage: follow <player_name>')
             return
         }
 
@@ -104,18 +98,18 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'unfollow' || args[0] === 'stopfollow') {
         const result = following.stopFollowing(state.bot)
-        console.log(result.message)
+        log.info(result.message)
     }
 
     if (args[0] === 'mine') {
         if (args.length < 3) {
-            console.log('Usage: mine <block_name> [block_name2...] <count>')
+            log.warn('Usage: mine <block_name> [block_name2...] <count>')
             return
         }
 
         const count = parseInt(args[args.length - 1])
         if (isNaN(count)) {
-            console.log('Last argument must be a number (count)')
+            log.warn('Last argument must be a number (count)')
             return
         }
 
@@ -131,7 +125,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'place') {
         if (args.length < 5) {
-            console.log('Usage: place <block_name> <x> <y> <z>')
+            log.warn('Usage: place <block_name> <x> <y> <z>')
             return
         }
 
@@ -142,7 +136,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
         // Validate coordinates
         if (isNaN(x) || isNaN(y) || isNaN(z)) {
-            console.log('Invalid coordinates. X, Y, Z must be numbers')
+            log.warn('Invalid coordinates. X, Y, Z must be numbers')
             return
         }
 
@@ -156,7 +150,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'placenear') {
         if (args.length < 2) {
-            console.log("Usage: placenear [block_name]")
+            log.warn("Usage: placenear [block_name]")
             return
         }
         const blockName = args[1]
@@ -170,7 +164,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'break') {
         if (args.length < 4) {
-            console.log('Usage: break <x> <y> <z>')
+            log.warn('Usage: break <x> <y> <z>')
             return
         }
 
@@ -180,7 +174,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
         // Validate coordinates
         if (isNaN(x) || isNaN(y) || isNaN(z)) {
-            console.log('Invalid coordinates. X, Y, Z must be numbers')
+            log.warn('Invalid coordinates. X, Y, Z must be numbers')
             return
         }
 
@@ -194,7 +188,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'craftsmall') {
         if (args.length < 2) {
-            console.log('Usage: craftsmall [item_name] [amount]')
+            log.warn('Usage: craftsmall [item_name] [amount]')
             return
         }
 
@@ -202,7 +196,7 @@ const processCommand = (commandString, source = 'unknown') => {
         const amount = args.length >= 3 ? parseInt(args[2]) : 1
 
         if (isNaN(amount) || amount <= 0) {
-            console.log('Amount must be a positive number')
+            log.warn('Amount must be a positive number')
             return
         }
 
@@ -216,7 +210,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'craft') {
         if (args.length < 2) {
-            console.log('Usage: craft <item_name> [amount]')
+            log.warn('Usage: craft <item_name> [amount]')
             return
         }
 
@@ -224,7 +218,7 @@ const processCommand = (commandString, source = 'unknown') => {
         const amount = args.length >= 3 ? parseInt(args[2]) : 1
 
         if (isNaN(amount) || amount < 1) {
-            console.log('Amount must be a positive number')
+            log.warn('Amount must be a positive number')
             return
         }
 
@@ -238,7 +232,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'goto') {
         if (args.length < 2) {
-            console.log('Usage: goto [x] [y] [z] OR goto [blockName]')
+            log.warn('Usage: goto [x] [y] [z] OR goto [blockName]')
             return
         }
 
@@ -251,7 +245,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
             // Validate coordinates
             if (isNaN(x) || isNaN(y) || isNaN(z)) {
-                console.log('Invalid coordinates. X, Y, Z must be numbers')
+                log.warn('Invalid coordinates. X, Y, Z must be numbers')
                 return
             }
 
@@ -288,11 +282,11 @@ const processCommand = (commandString, source = 'unknown') => {
                 minDist = parsedMinDist
                 maxDist = parsedMaxDist
             } else {
-                console.log('Invalid distance values, using defaults (16, 32)')
+                log.warn('Invalid distance values, using defaults (16, 32)')
             }
         }
 
-        console.log(`Random walk with distances: ${minDist} to ${maxDist} blocks`)
+        log.info(`Random walk with distances: ${minDist} to ${maxDist} blocks`)
 
         taskQueue.enqueue({
             name: `randomwalk: ${minDist}-${maxDist} blocks`,
@@ -304,7 +298,7 @@ const processCommand = (commandString, source = 'unknown') => {
 
     if (args[0] === 'hunt') {
         if (args.length < 2) {
-            console.log('Usage: hunt [mob_type] [max_count]')
+            log.warn('Usage: hunt [mob_type] [max_count]')
             return
         }
 
@@ -312,7 +306,7 @@ const processCommand = (commandString, source = 'unknown') => {
         const maxCount = args.length >= 3 ? parseInt(args[2]) : null
 
         if (args.length >= 3 && (isNaN(maxCount) || maxCount <= 0)) {
-            console.log('Max count must be a positive number')
+            log.warn('Max count must be a positive number')
             return
         }
 

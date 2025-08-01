@@ -3,6 +3,10 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const readline = require('readline')
 
+// Import logging
+const { createModuleLogger } = require('./Intrisics/puppeteerLogger')
+const log = createModuleLogger('Main')
+
 // Import Puppeteer modules
 // Intrinsics
 const config = require('./Intrisics/puppeteerConfig')
@@ -28,15 +32,15 @@ const rl = readline.createInterface({
 
 // Setup task queue event listeners
 taskQueue.on('taskStarted', (task) => {
-    console.log(`[TaskQueue] Started: ${task.name}`)
+    log.info(`[TaskQueue] Started: ${task.name}`)
 })
 
 taskQueue.on('taskCompleted', (task) => {
-    console.log(`[TaskQueue] Completed: ${task.name}`)
+    log.info(`[TaskQueue] Completed: ${task.name}`)
 })
 
 taskQueue.on('taskFailed', (task, error) => {
-    console.log(`[TaskQueue] Failed: ${task.name} - ${error.message}`)
+    log.error(`[TaskQueue] Failed: ${task.name} - ${error.message}`)
 })
 
 // Console input handler
@@ -57,7 +61,7 @@ app.get('/GetInernal',(req, res) => {
     try {
         res.send(environment.getInternalState(state.bot))
     } catch(e) {
-        console.log(e)
+        log.error(`Failed to get internal state: ${e.message}`)
         res.status(500).send('Any is not ready')
     }
 })
@@ -71,6 +75,6 @@ app.post('/Command', async (req, res) => {
 })
 
 app.listen(config.SERVER_PORT, () => {
-    console.log(`Server is running on http://localhost:${config.SERVER_PORT}`)
+    log.info(`Server is running on http://localhost:${config.SERVER_PORT}`)
     rl.prompt()
 })

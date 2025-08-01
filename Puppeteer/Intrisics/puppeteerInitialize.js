@@ -9,6 +9,11 @@ const config = require('./puppeteerConfig')
 const state = require('./puppeteerState')
 const taskQueue = require('./puppeteerTaskQueue')
 const patches = require('./puppeteerMineflayerPatches')
+
+// Import logging
+const { createModuleLogger } = require('./puppeteerLogger')
+const log = createModuleLogger('Initialize')
+
 // Automata behaviour
 const behaviors = require('../Automata/puppeteerBehaviour')
 const environment = require('../Automata/puppeteerEnvironment')
@@ -24,13 +29,14 @@ const initBot = () => {
     state.bot.setMaxListeners(20)
 
     state.bot.on('login', () => {
-        console.log('Successfully logged in')
+        log.info('Successfully logged in')
     })
 
     state.bot.on('end', () => {
         state.ANY_READY = false
-        console.log('Disconnected!!!')
+        log.info('Disconnected!!!')
         if (state.ANY_SHOULD_LOG_IN) {
+            log.info('Reconnecting in 15 seconds...')
             setTimeout(initBot, 15000)
         }
     })
@@ -38,7 +44,9 @@ const initBot = () => {
     state.bot.on('error', (err) => {
         state.ANY_READY = false
         if (err.code === 'ECONNREFUSED') {
-            console.log('Connection Refused!!!')
+            log.error('Connection Refused!!!', { stack: err.stack })
+        } else {
+            log.error(`Bot error: ${err.message}`, { stack: err.stack })
         }
     })
 
@@ -46,27 +54,37 @@ const initBot = () => {
         state.ANY_READY = true
         state.mcData = require('minecraft-data')(state.bot.version)
 
+        log.info('Bot spawned successfully')
+        log.info('Enabling auto-eat...')
         state.bot.autoEat.enableAuto()
         state.bot.autoEat.setOpts(config.AUTO_EAT_OPTIONS)
 
         // Handle explosion packets safely
         state.bot._client.removeAllListeners('explosion')
         state.bot._client.on('explosion', patches.explosionHandlerFix)
+
+        log.info('Bot initialization complete - ready for commands')
     })
 
     state.bot.on('death', () => {
+        log.warn('Bot died! Resetting idle behaviors...')
         state.resetAllIdleBehaviors()
     })
 
     state.bot.on('chat', (username, message) => {
         if (message.includes('time')) {
-            state.bot.chat(`${state.getTimeSinceLastActivity() / 1000}s have passed since last activity.`)
+            const timeSinceActivity = state.getTimeSinceLastActivity() / 1000
+            state.bot.chat(`${timeSinceActivity}s have passed since last activity.`)
+            log.info(`Time query from ${username}: ${timeSinceActivity}s since last activity`)
         }
         if (message.includes('health')) {
-            state.bot.chat(`\nHealth: ${state.bot.health}\nHunger: ${state.bot.food}`)
+            const healthInfo = `Health: ${state.bot.health}, Hunger: ${state.bot.food}`
+            state.bot.chat(`\n${healthInfo}`)
+            log.info(`Health query from ${username}: ${healthInfo}`)
         }
         if (message.includes('state')) {
             state.bot.chat(environment.getInternalState(state.bot))
+            log.info(`State query from ${username}`)
         }
     })
 

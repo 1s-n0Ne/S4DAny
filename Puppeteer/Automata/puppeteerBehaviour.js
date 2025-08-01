@@ -4,6 +4,10 @@ const config = require('../Intrisics/puppeteerConfig')
 const state = require('../Intrisics/puppeteerState')
 const armor = require('./puppeteerArmor')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Behaviour')
+
 function isPassiveMob(entity) {
     return config.PASSIVE_MOBS.includes(entity.name)
 }
@@ -28,7 +32,7 @@ async function handleWandering(bot) {
         const mob = findClosestPassiveMob(bot, 30)
 
         if (mob) {
-            console.log(`Bot bored. Mob found: following ${mob.name}`)
+            log.info(`Bot bored. Mob found: following ${mob.name}`)
             state.isWandering = true
             state.wanderingStartTime = currentTime
             state.targetMob = mob
@@ -44,7 +48,7 @@ async function handleWandering(bot) {
 
     // Check if we should stop wandering
     if (state.isWandering && (currentTime - state.wanderingStartTime) > config.WANDERING_DURATION) {
-        console.log('Bot finished wandering, going back to idle')
+        log.info('Bot finished wandering, going back to idle')
         state.isWandering = false
         state.targetMob = null
         state.updateActivity() // Reset idle timer
@@ -57,7 +61,7 @@ async function handleWandering(bot) {
     if (state.isWandering && state.targetMob) {
         const distance = bot.entity.position.distanceTo(state.targetMob.position)
         if (distance > 15 || !state.targetMob.isValid) { // Mob too far or despawned
-            console.log('Lost target mob, stopping wandering')
+            log.warn('Lost target mob, stopping wandering')
             state.isWandering = false
             state.targetMob = null
             state.updateActivity()
@@ -79,7 +83,7 @@ async function handleItemPickup(bot) {
                     ? nearestEntity : null
 
         if (item) {
-            console.log('Picking up item')
+            log.info('Picking up item')
 
             state.isPickingUpItem = true
             state.targetItem = item
@@ -93,7 +97,7 @@ async function handleItemPickup(bot) {
 
                 return true // We're now busy picking up an item
             } catch (error) {
-                console.error('Error setting path to item:', error)
+                log.error('Error setting path to item:', {stack: error.stack})
                 state.isPickingUpItem = false
                 state.targetItem = null
                 return false
@@ -103,7 +107,7 @@ async function handleItemPickup(bot) {
         // We're currently picking up an item, check if we should stop
         if (!state.targetItem || !state.targetItem.isValid) {
             // Item was picked up or despawned
-            console.log('Item picked up or despawned, stopping pickup behavior')
+            log.info('Item picked up or despawned, stopping pickup behavior')
             state.isPickingUpItem = false
             state.targetItem = null
             bot.pathfinder.setGoal(null)
@@ -189,7 +193,7 @@ async function handleCombat(bot) {
     const shouldRetreat = botHealth <= config.RETREAT_HEALTH_THRESHOLD && !state.isRetreating && hostile
 
     if (shouldRetreat) {
-        console.log(`Health low (${botHealth}/20), retreating!`)
+        log.info(`Health low (${botHealth}/20), retreating!`)
         state.isRetreating = true
         state.isInCombat = false
         state.combatTarget = null
@@ -206,9 +210,9 @@ async function handleCombat(bot) {
                 const goal = new goals.GoalBlock(retreatLocation.x, retreatLocation.y, retreatLocation.z)
                 bot.pathfinder.setGoal(goal, true)
 
-                console.log(`Retreating to ${retreatLocation.x}, ${retreatLocation.y}, ${retreatLocation.z}`)
+                log.info(`Retreating to ${retreatLocation.x}, ${retreatLocation.y}, ${retreatLocation.z}`)
             } catch (error) {
-                console.error('Error setting retreat path:', error)
+                log.error('Error setting retreat path:', {stack: error.stack})
                 state.isRetreating = false
             }
         } else {
@@ -224,7 +228,7 @@ async function handleCombat(bot) {
         const hasHealthRecovered = botHealth > config.RETREAT_HEALTH_THRESHOLD + 2 // Add some buffer
 
         if (hasRetreatTimeExpired || hasHealthRecovered) {
-            console.log('Stopping retreat - health recovered or timeout reached')
+            log.info('Stopping retreat - health recovered or timeout reached')
             state.isRetreating = false
             bot.pathfinder.setGoal(null)
         } else {
@@ -236,7 +240,7 @@ async function handleCombat(bot) {
     if (hostile) {
         // Start or continue combat
         if (!state.isInCombat) {
-            console.log(`Engaging hostile: ${hostile.name}`)
+            log.info(`Engaging hostile: ${hostile.name}`)
             state.isInCombat = true
         }
 
@@ -248,14 +252,14 @@ async function handleCombat(bot) {
 
             await bot.pvp.attack(hostile)
         } catch (error) {
-            console.error('Error attacking hostile:', error)
+            log.error('Error attacking hostile:', {stack: error.stack})
         }
 
         return true // We're in combat
     } else {
         // No hostiles nearby, stop combat
         if (state.isInCombat) {
-            console.log('No more hostiles nearby, exiting combat mode')
+            log.info('No more hostiles nearby, exiting combat mode')
             state.isInCombat = false
         }
         return false // Not in combat

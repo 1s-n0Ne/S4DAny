@@ -1,6 +1,10 @@
 // puppeteerTaskQueue.js - Task queue management for sequential command processing
 const EventEmitter = require('events')
 
+// Import logging
+const { createModuleLogger } = require('./puppeteerLogger')
+const log = createModuleLogger('TaskQueue')
+
 class TaskQueue extends EventEmitter {
     constructor() {
         super()
@@ -12,7 +16,7 @@ class TaskQueue extends EventEmitter {
 
     // Add a task to the queue
     enqueue(task) {
-        console.log(`Adding task to queue: ${task.name}`)
+        log.info(`Adding task to queue: ${task.name}`)
         this.queue.push(task)
         this.emit('taskAdded', task)
 
@@ -34,17 +38,20 @@ class TaskQueue extends EventEmitter {
         this.isProcessing = true
         this.currentTask = this.queue.shift()
 
-        console.log(`Processing task: ${this.currentTask.name}`)
+        log.info(`Processing task: ${this.currentTask.name}`)
         this.emit('taskStarted', this.currentTask)
 
         try {
             // Execute the task
             await this.currentTask.execute()
 
-            console.log(`Task completed: ${this.currentTask.name}`)
+            log.info(`Task completed: ${this.currentTask.name}`)
             this.emit('taskCompleted', this.currentTask)
         } catch (error) {
-            console.error(`Task failed: ${this.currentTask.name}`, error)
+            // Log the full error with stack trace
+            log.error(`Task failed: ${this.currentTask.name}`, {
+                stack: error.stack
+            })
             this.emit('taskFailed', this.currentTask, error)
         }
 
@@ -61,14 +68,14 @@ class TaskQueue extends EventEmitter {
 
     // Stop processing tasks
     stop() {
-        console.log('Stopping task queue')
+        log.info('Stopping task queue')
         this.shouldStop = true
         this.emit('queueStopped')
     }
 
     // Resume processing tasks
     resume() {
-        console.log('Resuming task queue')
+        log.info('Resuming task queue')
         this.shouldStop = false
         if (!this.isProcessing && this.queue.length > 0) {
             this.processNext()
@@ -78,7 +85,7 @@ class TaskQueue extends EventEmitter {
 
     // Clear all pending tasks
     clear() {
-        console.log('Clearing task queue')
+        log.info('Clearing task queue')
         this.queue = []
         this.emit('queueCleared')
     }
@@ -97,7 +104,7 @@ class TaskQueue extends EventEmitter {
     // Cancel current task if possible
     cancelCurrent() {
         if (this.currentTask && this.currentTask.cancel) {
-            console.log(`Cancelling current task: ${this.currentTask.name}`)
+            log.info(`Cancelling current task: ${this.currentTask.name}`)
             this.currentTask.cancel()
             this.emit('taskCancelled', this.currentTask)
         }

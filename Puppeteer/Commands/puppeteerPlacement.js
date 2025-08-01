@@ -4,6 +4,10 @@ const { Vec3 } = require('vec3')
 
 const config = require('../Intrisics/puppeteerConfig')
 
+// Import logging
+const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const log = createModuleLogger('Placement')
+
 async function place(bot, blockName, x, y, z) {
     const mcData = require('minecraft-data')(bot.version)
 
@@ -24,7 +28,7 @@ async function place(bot, blockName, x, y, z) {
     const targetY = Math.floor(y)
     const targetZ = Math.floor(z)
 
-    console.log(`Attempting to place ${blockName} at (${targetX}, ${targetY}, ${targetZ})`)
+    log.info(`Attempting to place ${blockName} at (${targetX}, ${targetY}, ${targetZ})`)
 
     // Check if target position is valid (not air placement without support)
     const targetPos = new Vec3(targetX, targetY, targetZ)
@@ -63,7 +67,7 @@ async function place(bot, blockName, x, y, z) {
 
     // Move closer if too far (within 4 blocks for placement)
     if (distance > 4) {
-        console.log(`Moving closer to placement position (distance: ${distance.toFixed(2)})`)
+        log.info(`Moving closer to placement position (distance: ${distance.toFixed(2)})`)
 
         try {
             bot.pathfinder.setGoal(new goals.GoalNear(targetX, targetY, targetZ, 3))
@@ -105,7 +109,7 @@ async function place(bot, blockName, x, y, z) {
     try {
         // Equip the block item
         await bot.equip(blockItem, 'hand')
-        console.log(`Equipped ${blockName}`)
+        log.info(`Equipped ${blockName}`)
 
         // Find the reference block to place against
         const referenceBlock = validSupportBlock
@@ -135,7 +139,7 @@ async function place(bot, blockName, x, y, z) {
         // Place the block
         await bot.placeBlock(referenceBlock, faceVector)
 
-        console.log(`Successfully placed ${blockName} at (${targetX}, ${targetY}, ${targetZ})`)
+        log.info(`Successfully placed ${blockName} at (${targetX}, ${targetY}, ${targetZ})`)
 
         return {
             success: true,
@@ -168,7 +172,7 @@ async function placeNear(bot, blockName) {
     const botPos = bot.entity.position
     const searchRadius = 1 // 2x2x2 area around player (1 block in each direction)
 
-    console.log(`Looking for placement spot for ${blockName} near player position`)
+    log.info(`Looking for placement spot for ${blockName} near player position`)
 
     // Generate all possible positions in the 2x2x2 bubble around the player
     const candidates = []
@@ -190,7 +194,7 @@ async function placeNear(bot, blockName) {
         }
     }
 
-    console.log(`Checking ${candidates.length} possible positions`)
+    log.info(`Checking ${candidates.length} possible positions`)
 
     // Sort candidates by preference (closer to player, lower Y first for stability)
     candidates.sort((a, b) => {
@@ -232,12 +236,12 @@ async function placeNear(bot, blockName) {
             if (!supportBlock) continue
 
             // Found a valid position! Try to place the block
-            console.log(`Found valid position at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z})`)
+            log.info(`Found valid position at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z})`)
 
             try {
                 // Use the existing place function
                 const result = await place(bot, blockName, candidatePos.x, candidatePos.y, candidatePos.z)
-                console.log(`Successfully placed ${blockName} near player at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z})`)
+                log.info(`Successfully placed ${blockName} near player at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z})`)
 
                 return {
                     success: true,
@@ -248,7 +252,7 @@ async function placeNear(bot, blockName) {
 
             } catch (placeError) {
                 // If placement fails at this position, try the next one
-                console.log(`Failed to place at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z}): ${placeError.message}`)
+                log.error(`Failed to place at (${candidatePos.x}, ${candidatePos.y}, ${candidatePos.z}): ${placeError.message}`)
             }
 
         } catch (error) {
@@ -268,7 +272,7 @@ async function breakBlock(bot, x, y, z) {
     const targetY = Math.floor(y)
     const targetZ = Math.floor(z)
 
-    console.log(`Attempting to break block at (${targetX}, ${targetY}, ${targetZ})`)
+    log.info(`Attempting to break block at (${targetX}, ${targetY}, ${targetZ})`)
 
     // Get the target block
     const targetPos = new Vec3(targetX, targetY, targetZ)
@@ -280,7 +284,7 @@ async function breakBlock(bot, x, y, z) {
 
     // If block is already air, return success
     if (targetBlock.name === 'air') {
-        console.log(`Block at (${targetX}, ${targetY}, ${targetZ}) is already air`)
+        log.info(`Block at (${targetX}, ${targetY}, ${targetZ}) is already air`)
         return {
             success: true,
             blockName: 'air',
@@ -300,7 +304,7 @@ async function breakBlock(bot, x, y, z) {
         throw new Error(`Block '${targetBlock.name}' is unbreakable`)
     }
 
-    console.log(`Breaking ${targetBlock.name} (hardness: ${blockInfo.hardness})`)
+    log.info(`Breaking ${targetBlock.name} (hardness: ${blockInfo.hardness})`)
 
     // Calculate distance to target
     const botPosition = bot.entity.position
@@ -308,7 +312,7 @@ async function breakBlock(bot, x, y, z) {
 
     // Move closer if too far (within 4.5 blocks for breaking)
     if (distance > 4.5) {
-        console.log(`Moving closer to target block (distance: ${distance.toFixed(2)})`)
+        log.info(`Moving closer to target block (distance: ${distance.toFixed(2)})`)
 
         try {
             bot.pathfinder.setGoal(new goals.GoalNear(targetX, targetY, targetZ, 3))
@@ -355,10 +359,10 @@ async function breakBlock(bot, x, y, z) {
         await bot.lookAt(targetBlock.position.offset(0.5, 0.5, 0.5))
 
         // Break the block
-        console.log(`Breaking ${targetBlock.name} with equipped tool`)
+        log.info(`Breaking ${targetBlock.name} with equipped tool`)
         await bot.dig(targetBlock)
 
-        console.log(`Successfully broke ${targetBlock.name} at (${targetX}, ${targetY}, ${targetZ})`)
+        log.info(`Successfully broke ${targetBlock.name} at (${targetX}, ${targetY}, ${targetZ})`)
 
         return {
             success: true,
@@ -386,7 +390,7 @@ async function equipBestTool(bot, block) {
     })
 
     if (tools.length === 0) {
-        console.log('No tools available, using hand')
+        log.info('No tools available, using hand')
         return
     }
 
@@ -484,10 +488,10 @@ async function equipBestTool(bot, block) {
     }
 
     if (bestTool) {
-        console.log(`Equipping ${bestTool.name} for breaking ${block.name}`)
+        log.info(`Equipping ${bestTool.name} for breaking ${block.name}`)
         await bot.equip(bestTool, 'hand')
     } else {
-        console.log('No suitable tool found, using hand')
+        log.info('No suitable tool found, using hand')
     }
 }
 
