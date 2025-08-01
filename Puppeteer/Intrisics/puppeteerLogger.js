@@ -5,8 +5,14 @@ const fs = require('fs');
 
 // Create logs directory if it doesn't exist
 const logsDir = path.join(__dirname, '..', 'logs');
+const oldLogsDir = path.join(logsDir, 'old');
+
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
+}
+
+if (!fs.existsSync(oldLogsDir)) {
+    fs.mkdirSync(oldLogsDir, { recursive: true });
 }
 
 // Function to format timestamp for archived log files
@@ -33,7 +39,7 @@ function archiveExistingLogs() {
     if (fs.existsSync(latestLogPath)) {
         const stats = fs.statSync(latestLogPath);
         if (stats.size > 0) { // Only archive if file has content
-            const archivedLatestPath = path.join(logsDir, `${timestamp}.log`);
+            const archivedLatestPath = path.join(oldLogsDir, `${timestamp}.log`);
             fs.renameSync(latestLogPath, archivedLatestPath);
         } else {
             fs.unlinkSync(latestLogPath); // Remove empty file
@@ -44,7 +50,7 @@ function archiveExistingLogs() {
     if (fs.existsSync(errorsLogPath)) {
         const stats = fs.statSync(errorsLogPath);
         if (stats.size > 0) { // Only archive if file has content
-            const archivedErrorsPath = path.join(logsDir, `error_${timestamp}.log`);
+            const archivedErrorsPath = path.join(oldLogsDir, `error_${timestamp}.log`);
             fs.renameSync(errorsLogPath, archivedErrorsPath);
         } else {
             fs.unlinkSync(errorsLogPath); // Remove empty file
@@ -123,7 +129,7 @@ function archiveLogsOnExit() {
             if (fs.existsSync(latestLogPath)) {
                 const stats = fs.statSync(latestLogPath);
                 if (stats.size > 0) {
-                    const archivedLatestPath = path.join(logsDir, `${timestamp}.log`);
+                    const archivedLatestPath = path.join(oldLogsDir, `${timestamp}.log`);
                     fs.renameSync(latestLogPath, archivedLatestPath);
                 }
             }
@@ -132,7 +138,7 @@ function archiveLogsOnExit() {
             if (fs.existsSync(errorsLogPath)) {
                 const stats = fs.statSync(errorsLogPath);
                 if (stats.size > 0) {
-                    const archivedErrorsPath = path.join(logsDir, `error_${timestamp}.log`);
+                    const archivedErrorsPath = path.join(oldLogsDir, `error_${timestamp}.log`);
                     fs.renameSync(errorsLogPath, archivedErrorsPath);
                 }
             }
