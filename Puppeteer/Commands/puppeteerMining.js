@@ -1,11 +1,11 @@
 const explorer = require('./puppeteerExplorer')
+const state = require('../Intrisics/puppeteerState')
 
 // Import logging
 const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
 const log = createModuleLogger('Mining')
 
 async function mine(bot, blockNames, targetCount) {
-    const mcData = require('minecraft-data')(bot.version)
 
     // Convert block names to IDs
     const blockTypes = []
@@ -15,7 +15,7 @@ async function mine(bot, blockNames, targetCount) {
             throw new Error('Cannot mine bedrock - it is unbreakable')
         }
 
-        const blockType = mcData.blocksByName[blockName]
+        const blockType = state.mcData.blocksByName[blockName]
         if (!blockType) {
             log.warn(`Unknown block type: ${blockName}`)
             continue

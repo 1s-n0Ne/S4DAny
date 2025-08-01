@@ -3,16 +3,15 @@ const { goals } = require('mineflayer-pathfinder')
 const { Vec3 } = require('vec3')
 
 const config = require('../Intrisics/puppeteerConfig')
+const state = require('../Intrisics/puppeteerState')
 
 // Import logging
 const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
 const log = createModuleLogger('Placement')
 
 async function place(bot, blockName, x, y, z) {
-    const mcData = require('minecraft-data')(bot.version)
-
     // Validate block type exists
-    const blockType = mcData.blocksByName[blockName]
+    const blockType = state.mcData.blocksByName[blockName]
     if (!blockType) {
         throw new Error(`Unknown block type: ${blockName}`)
     }
@@ -155,10 +154,8 @@ async function place(bot, blockName, x, y, z) {
 }
 
 async function placeNear(bot, blockName) {
-    const mcData = require('minecraft-data')(bot.version)
-
     // Validate block type exists
-    const blockType = mcData.blocksByName[blockName]
+    const blockType = state.mcData.blocksByName[blockName]
     if (!blockType) {
         throw new Error(`Unknown block type: ${blockName}`)
     }
@@ -265,8 +262,6 @@ async function placeNear(bot, blockName) {
 }
 
 async function breakBlock(bot, x, y, z) {
-    const mcData = require('minecraft-data')(bot.version)
-
     // Parse and validate coordinates
     const targetX = Math.floor(x)
     const targetY = Math.floor(y)
@@ -294,7 +289,7 @@ async function breakBlock(bot, x, y, z) {
     }
 
     // Check if block is breakable
-    const blockInfo = mcData.blocksByName[targetBlock.name]
+    const blockInfo = state.mcData.blocksByName[targetBlock.name]
     if (!blockInfo) {
         throw new Error(`Unknown block type: ${targetBlock.name}`)
     }
@@ -377,8 +372,6 @@ async function breakBlock(bot, x, y, z) {
 }
 
 async function equipBestTool(bot, block) {
-    const mcData = require('minecraft-data')(bot.version)
-
     // Get all tools in inventory
     const tools = bot.inventory.items().filter(item => {
         return item.name.includes('pickaxe') ||
@@ -423,7 +416,7 @@ async function equipBestTool(bot, block) {
     }
 
     // Get block material type
-    const blockInfo = mcData.blocksByName[block.name]
+    const blockInfo = state.mcData.blocksByName[block.name]
     let blockMaterial = 'default'
 
     // Try to determine material from block name patterns

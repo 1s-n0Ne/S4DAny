@@ -1,5 +1,6 @@
 // puppeteerMine.js - Simple mine command implementation
 const { goals } = require('mineflayer-pathfinder')
+const state = require('../Intrisics/puppeteerState')
 
 // Import logging
 const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
@@ -7,8 +8,7 @@ const log = createModuleLogger('Explorer')
 
 // Find nearest crafting table
 async function findBlock(bot, blockName) {
-    const mcData = require('minecraft-data')(bot.version)
-    const blockId = mcData.blocksByName[blockName].id
+    const blockId = state.mcData.blocksByName[blockName].id
 
     // Search for block within 32 blocks
     const blocksMatch = bot.findBlocks({

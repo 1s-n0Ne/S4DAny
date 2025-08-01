@@ -2,19 +2,19 @@
 const { goals } = require('mineflayer-pathfinder')
 
 const explorer = require('./puppeteerExplorer')
+const state = require('../Intrisics/puppeteerState')
 
 const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
 const log = createModuleLogger('Crafting')
 
 // Craft using 2x2 player inventory grid
 async function craftSmall(bot, itemName, amount = 1) {
-    const mcData = require('minecraft-data')(bot.version)
     const Recipe = require('prismarine-recipe')(bot.version).Recipe
 
     log.info(`Attempting to craft ${itemName} x${amount}`)
 
     // Validate item exists
-    const itemType = mcData.itemsByName[itemName]
+    const itemType = state.mcData.itemsByName[itemName]
     if (!itemType) {
         throw new Error(`Unknown item: ${itemName}`)
     }
@@ -43,13 +43,12 @@ async function craftSmall(bot, itemName, amount = 1) {
 
 // Craft using crafting table
 async function craft(bot, itemName, amount = 1) {
-    const mcData = require('minecraft-data')(bot.version)
     const Recipe = require('prismarine-recipe')(bot.version).Recipe
 
     log.info(`Attempting to craft ${itemName} x${amount} using crafting table`)
 
     // Validate item exists
-    const itemType = mcData.itemsByName[itemName]
+    const itemType = state.mcData.itemsByName[itemName]
     if (!itemType) {
         throw new Error(`Unknown item: ${itemName}`)
     }
@@ -206,8 +205,7 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
 
 // Helper function to count items in inventory
 function getItemCount(bot, itemName) {
-    const mcData = require('minecraft-data')(bot.version)
-    const item = mcData.itemsByName[itemName]
+    const item = state.mcData.itemsByName[itemName]
     if (!item) return 0
 
     return bot.inventory.items()
