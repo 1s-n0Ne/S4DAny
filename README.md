@@ -1,10 +1,7 @@
 # S4D Any
 
----
-
 Project ANY is an advanced Minecraft bot system that combines **mineflayer** automation with **OpenAI's GPT models** to create an embodied AI agent capable of autonomous decision-making, social interaction, and complex task execution in Minecraft multiplayer environments.
 
----
 ## Architecture
 
 The system consists of two main components:
