@@ -1,5 +1,5 @@
 // state.js - Centralized state management
-const { createModuleLogger } = require('./puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('State')
 
 class BotState {

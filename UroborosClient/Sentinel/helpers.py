@@ -57,15 +57,6 @@ def parse_command(command):
 
     return tree
 
-
-def show_forbidden(server, username):
-    server.command(f'title {username} ' + 'times 20 40 20')
-    server.command(f'title {username} ' + 'subtitle {"text":"¿Habrá consecuencias?","italic":true,"color":"red"}')
-    server.command(f'execute at {username} run particle minecraft:sculk_soul ~ ~ ~ 1 1 1 0.1 500')
-    server.command(f'execute at {username} run playsound minecraft:ambient.cave ambient {username} ~ ~ ~ 100 0.75')
-    server.command(f'title {username} ' + 'title {"text":"ARTE PROHIBIDO","bold":true,"color":"red"}')
-
-
 def show_success_effects(server, username):
     server.command(f'title {username} ' + 'times 20 40 20')
     server.command(f'title {username} ' + 'subtitle ["",{"text":"Algo acaba de suceder","italic":true,"color":"gold"},{"text":"...","color":"gold"}]')
@@ -74,14 +65,12 @@ def show_success_effects(server, username):
     server.command(f'execute at {username} run playsound minecraft:entity.firework_rocket.twinkle_far voice {username}')
     server.command(f'title {username} ' + 'title {"text":"Tus manos resplandecen","color":"gold"}')
 
-
 def show_failure_effect(server, username):
     server.command(f'title {username} ' + 'times 20 40 20')
     server.command(f'title {username} ' + 'subtitle {"text":"¿Quizás hichiste algo mal?","italic":true,"color":"gray"}')
     server.command(f'execute at {username} run particle minecraft:ash ~ ~ ~ 1 1 1 0.1 500')
     server.command(f'execute at {username} run playsound minecraft:ambient.soul_sand_valley.additions ambient {username} ~ ~ ~ 100 0.75')
     server.command(f'title {username} ' + 'title {"text":"Un débil brillo emana de tus manos.","color":"gray"}')
-
 
 def you_are_alone(server, username):
     server.command(f'title {username} actionbar ' + '{"text":"Pero no vino nadie...","italic":true,"color":"gray"}')

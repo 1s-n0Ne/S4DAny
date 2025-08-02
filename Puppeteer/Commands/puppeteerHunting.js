@@ -3,7 +3,7 @@ const armor = require('../Automata/puppeteerArmor')
 const explorer = require('./puppeteerExplorer')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Hunting')
 
 async function hunt(bot, mobType, maxCount = null) {

@@ -2,7 +2,7 @@ const explorer = require('./puppeteerExplorer')
 const state = require('../Intrisics/puppeteerState')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Mining')
 
 async function mine(bot, blockNames, targetCount) {

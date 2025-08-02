@@ -2,7 +2,7 @@ const state = require("./puppeteerState");
 const {Vec3} = require("vec3")
 
 // Import logging
-const { createModuleLogger } = require('./puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('MineflayerPatch')
 
 // Mineflayer explosion event broken for 1.21.4

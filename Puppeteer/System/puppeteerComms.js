@@ -1,7 +1,7 @@
 // Intrinsics
 const state = require('../Intrisics/puppeteerState')
 const taskQueue = require('../Intrisics/puppeteerTaskQueue')
-const pinit = require('./puppeteerInitialize')
+const pinit = require('../Intrisics/puppeteerInitialize')
 
 // Import logging
 const { createModuleLogger } = require('./puppeteerLogger')

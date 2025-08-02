@@ -2,7 +2,7 @@
 const EventEmitter = require('events')
 
 // Import logging
-const { createModuleLogger } = require('./puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('TaskQueue')
 
 class TaskQueue extends EventEmitter {

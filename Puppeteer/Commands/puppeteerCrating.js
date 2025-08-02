@@ -4,7 +4,7 @@ const { goals } = require('mineflayer-pathfinder')
 const explorer = require('./puppeteerExplorer')
 const state = require('../Intrisics/puppeteerState')
 
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Crafting')
 
 // Craft using 2x2 player inventory grid

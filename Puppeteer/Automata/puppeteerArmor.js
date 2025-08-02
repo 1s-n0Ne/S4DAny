@@ -2,7 +2,7 @@
 const config = require('../Intrisics/puppeteerConfig')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Armor')
 
 function getArmorType(itemName) {

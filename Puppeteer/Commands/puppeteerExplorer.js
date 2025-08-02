@@ -3,7 +3,7 @@ const { goals } = require('mineflayer-pathfinder')
 const state = require('../Intrisics/puppeteerState')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Explorer')
 
 // Find nearest crafting table

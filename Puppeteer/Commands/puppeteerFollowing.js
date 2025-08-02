@@ -4,7 +4,7 @@ const config = require('../Intrisics/puppeteerConfig')
 const state = require('../Intrisics/puppeteerState')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Following')
 
 function checkIfTargetStationary(currentTargetPos, currentTime) {

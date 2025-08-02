@@ -11,7 +11,7 @@ const taskQueue = require('./puppeteerTaskQueue')
 const patches = require('./puppeteerMineflayerPatches')
 
 // Import logging
-const { createModuleLogger } = require('./puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Initialize')
 
 // Automata behaviour

@@ -5,7 +5,7 @@ const state = require('../Intrisics/puppeteerState')
 const armor = require('./puppeteerArmor')
 
 // Import logging
-const { createModuleLogger } = require('../Intrisics/puppeteerLogger')
+const { createModuleLogger } = require('../System/puppeteerLogger')
 const log = createModuleLogger('Behaviour')
 
 function isPassiveMob(entity) {
