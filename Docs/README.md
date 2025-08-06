@@ -18,35 +18,25 @@ The AI decision-making system that processes game state and generates intelligen
 
 ### 🤖 **Autonomous Gameplay**
 - **Mining & Resource Gathering**: Intelligently mines blocks and collects resources
-- **Crafting**: Supports both 2x2 inventory crafting and crafting table recipes
 - **Building & Placement**: Places and breaks blocks with spatial awareness
 - **Combat**: Equipped with PvP capabilities, armor management, and tactical retreat
-- **Exploration**: Random exploration with pathfinding and obstacle avoidance
 
 ### 🧭 **Navigation & Movement**
 - **Smart Pathfinding**: Uses mineflayer-pathfinder for efficient navigation
-- **Following**: Can follow players with intelligent stop conditions
-- **Goal-oriented Movement**: Navigate to coordinates or specific block types
 - **Collision Avoidance**: Handles complex terrain and obstacles
 
 ### 🎯 **AI Decision Making**
-- **Sombra**: Strategic mind-state analysis and task planning
-- **Gulliver**: Command execution and action planning  
-- **Ego**: Natural language personality and chat responses
+- VOYAGER like architecture for decision-making.
 - **Context Awareness**: Understands game state, inventory, and environment
 
 ### 👥 **Social Features**
 - **Natural Conversations**: Responds in character as "Any Cemar"
 - **Multi-player Awareness**: Tracks nearby players and entities
 - **Dynamic Responses**: Adapts behavior based on chat context and game events
-- **Permission System**: Secure command authorization for trusted users
 
 ### ⚙️ **Advanced Systems**
 - **Task Queue**: Sequential command processing with error handling
 - **State Management**: Comprehensive bot state tracking and persistence
-- **Auto-armor**: Intelligent equipment management and upgrades
-- **Auto-eat**: Automatic hunger management
-- **Logging**: Minecraft-style logging with archival system
 
 ## 🛠️ Installation
 
