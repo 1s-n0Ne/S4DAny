@@ -148,20 +148,20 @@ The bot responds to special "system call" commands in Minecraft chat:
 
 ## 🎭 AI Personas
 
-### **Sombra** - The Strategic Mind
+### **Sombra**
 Analyzes game state and determines optimal next actions based on:
 - Current inventory and equipment
 - Environmental context and nearby blocks
 - Chat interactions and social dynamics
 - Completed and failed task history
 
-### **Gulliver** - The Executor
+### **Gulliver**
 Translates high-level goals into specific Minecraft commands:
 - Converts natural language objectives to executable commands
 - Handles complex multi-step operations
 - Manages resource requirements and dependencies
 
-### **Ego** - The Personality
+### **Ego**
 Manages social interactions as "Any Cemar":
 - Responds to chat messages in character
 - Maintains conversational flow and humor
