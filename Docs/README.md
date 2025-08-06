@@ -12,18 +12,7 @@ The core Minecraft bot controller built on mineflayer.
 ### 🧠 **UroborosClient** (Python)
 The AI decision-making system that processes game state and generates intelligent responses.
 
-```
-┌─────────────────┐    REST API    ┌─────────────────┐
-│   UroborosClient│◄──────────────►│    Puppeteer    │
-│   (Python AI)   │                │  (JS Minecraft) │
-└─────────────────┘                └─────────────────┘
-        │                                   │
-        │                                   │
-    ┌───▼───┐                          ┌────▼────┐
-    │OpenAI │                          │Minecraft│
-    │  API  │                          │ Server  │
-    └───────┘                          └─────────┘
-```
+![](AnyArquitecture.png)
 
 ## 🚀 Features
 
