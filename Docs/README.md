@@ -1,6 +1,6 @@
 # S4D Any
 
-Project ANY is an advanced Minecraft bot system that combines **mineflayer** automation with **OpenAI's GPT models** to create an embodied AI agent capable of autonomous decision-making, social interaction, and complex task execution in Minecraft multiplayer environments.
+S4D Any is an advanced Minecraft bot system that combines **mineflayer** automation with **OpenAI's GPT models** to create an embodied AI agent capable of autonomous decision-making, social interaction, and complex task execution in Minecraft multiplayer environments.
 
 ## Architecture
 
@@ -42,8 +42,8 @@ The AI decision-making system that processes game state and generates intelligen
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/your-repo/project-any.git
-cd project-any
+git clone https://github.com/1s-n0Ne/S4DAny
+cd S4DAny
 ```
 
 2. **Setup Puppeteer**
