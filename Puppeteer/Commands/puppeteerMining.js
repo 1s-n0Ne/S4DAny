@@ -132,50 +132,36 @@ async function mine(bot, blockNames, targetCount) {
             continue
         }
 
-        try {
-            log.info(`Starting a batch. Mining ${harvestableTargets.length} targets. Presumably ${targetCount-totalMined-harvestableTargets.length} left`)
+        log.info(`Starting a batch. Mining ${harvestableTargets.length} targets. Presumably ${targetCount-totalMined-harvestableTargets.length} left`)
 
-            // Set up a safety timeout for collectBlock
-            let collectCompleted = false
-            const safetyTimeout = setTimeout(() => {
-                if (!collectCompleted) {
-                    log.warn('Mining taking too long, likely stuck')
-                    // Force stop any ongoing collection
-                    if (bot.pathfinder) {
-                        bot.pathfinder.setGoal(null)
+        // Set up a safety timeout for collectBlock
+        let collectCompleted = false
+        const safetyTimeout = setTimeout(() => {
+            if (!collectCompleted) {
+                log.warn('Mining taking too long, likely stuck')
+                // Force stop any ongoing collection
+                if (bot.pathfinder) {
+                    bot.pathfinder.setGoal(null)
+                }
+            }
+        }, 30000) // 30 second safety timeout
+
+        // Don't do batch. Do one by one. Batch
+        for (let target of harvestableTargets) {
+                try {
+                    // Collect the single block
+                    await bot.collectBlock.collect([target]) // Note: wrap in array
+                    totalMined += 1
+                    log.info(`Mined 1 block. Total: ${totalMined}/${targetCount}`)
+                } catch (error) {
+                    log.warn(`Failed to collect block at ${target.position}: ${error.message}`)
+                    if (error.message.includes('dig') || error.message.includes('harvest')) {
+                        throw new Error(`Cannot mine blocks - tool requirement issue: ${error.message}`)
                     }
                 }
-            }, 30000) // 30 second safety timeout
-
-            // Don't do batch. Do one by one. Batch
-            for (let target of harvestableTargets) {
-                    try {
-                        // Collect the single block
-                        await bot.collectBlock.collect([target]) // Note: wrap in array
-                        totalMined += 1
-                        log.info(`Mined 1 block. Total: ${totalMined}/${targetCount}`)
-                    } catch (error) {
-                        log.warn(`Failed to collect block at ${target.position}: ${error.message}`)
-                    }
-            }
-            collectCompleted = true
-            clearTimeout(safetyTimeout)
-
-        } catch (error) {
-            log.error(`Failed to collect blocks: ${error.message}`)
-
-            // Check if the error is because we can't harvest the block
-            if (error.message.includes('dig') || error.message.includes('harvest')) {
-                throw new Error(`Cannot mine blocks - tool requirement issue: ${error.message}`)
-            }
-
-            // Try exploring after collection failure
-            try {
-                await explorer.randomExplore(bot, 16, 32)
-            } catch (exploreError) {
-                log.error(`Recovery exploration failed: ${exploreError.message}`)
-            }
         }
+        collectCompleted = true
+        clearTimeout(safetyTimeout)
     }
 
     // Final check - if we mined nothing and were asked to mine something, that's a failure
