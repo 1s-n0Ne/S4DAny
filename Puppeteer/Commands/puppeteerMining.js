@@ -29,7 +29,7 @@ async function mine(bot, blockNames, targetCount) {
 
     let totalMined = 0
     let exploreAttempts = 0
-    const maxExploreAttempts = 10
+    const maxExploreAttempts = 5
     let foundUnharvestableBlock = false
     let unharvestableBlockName = ''
 
@@ -133,6 +133,8 @@ async function mine(bot, blockNames, targetCount) {
         }
 
         try {
+            log.info(`Starting a batch. Mining ${harvestableTargets.length} targets. Presumably ${targetCount-totalMined-harvestableTargets.length} left`)
+
             // Set up a safety timeout for collectBlock
             let collectCompleted = false
             const safetyTimeout = setTimeout(() => {
@@ -145,13 +147,20 @@ async function mine(bot, blockNames, targetCount) {
                 }
             }, 30000) // 30 second safety timeout
 
-            // Collect the blocks
-            await bot.collectBlock.collect(harvestableTargets)
+            // Don't do batch. Do one by one. Batch
+            for (let target of harvestableTargets) {
+                    try {
+                        // Collect the single block
+                        await bot.collectBlock.collect([target]) // Note: wrap in array
+                        totalMined += 1
+                        log.info(`Mined 1 block. Total: ${totalMined}/${targetCount}`)
+                    } catch (error) {
+                        log.warn(`Failed to collect block at ${target.position}: ${error.message}`)
+                    }
+            }
             collectCompleted = true
             clearTimeout(safetyTimeout)
 
-            totalMined += harvestableTargets.length
-            log.info(`Mined ${harvestableTargets.length} blocks. Total: ${totalMined}/${targetCount}`)
         } catch (error) {
             log.error(`Failed to collect blocks: ${error.message}`)
 
