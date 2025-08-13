@@ -5,27 +5,33 @@ def sombra_mind_state(promptString, OpenAIClient):
 
     print('[SOMBRA] Calling OpenAI backend')
 
-    response = OpenAIClient.chat.completions.create(
-        # model="gpt-4-1106-preview",
-        model="gpt-3.5-turbo-1106",
-        messages=[
+    response = OpenAIClient.responses.create(
+        model="gpt-4-1106-preview",
+        input=[
             {
-                "role": "system",
-                "content": prompt
+                "role": "developer",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": prompt
+                    }
+                ]
             },
             {
                 "role": "user",
-                "content": promptString
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": promptString
+                    }
+                ]
             }
         ],
         temperature=0.2,
-        max_tokens=1500,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
+        store=True
     )
 
-    return response.choices[0].message.content
+    return response.output_text
 
 
 def executive_function(promptString, OpenAIClient):
@@ -43,27 +49,35 @@ def executive_function(promptString, OpenAIClient):
 
     print('[GULLIVER] Calling OpenAI backend')
 
-    response = OpenAIClient.chat.completions.create(
+    response = OpenAIClient.responses.create(
         model="gpt-4-1106-preview",
-        messages=[
+        input=[
             {
-                "role": "system",
-                "content": prompt
+                "role": "developer",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": prompt
+                    }
+                ]
             },
             {
                 "role": "user",
-                "content": generatedMindState
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": generatedMindState
+                    }
+                ]
             }
         ],
         temperature=1,
-        max_tokens=1500,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
+        store=True
     )
 
-    instructions = response.choices[0].message.content
-    return '\n'.join(generatedMindState.splitlines()[-2:]), instructions
+    instructions = response.output_text
+    reason_start = generatedMindState.find('Razonamiento')
+    return '\n'.join(generatedMindState[reason_start:].splitlines()[0:]), instructions
 
 
 def call_ego(promptString, OpenAIClient):
@@ -73,25 +87,31 @@ def call_ego(promptString, OpenAIClient):
 
     print('[EGO] Calling OpenAI backend')
 
-    response = OpenAIClient.chat.completions.create(
-        # model="gpt-3.5-turbo-1106",
+    response = OpenAIClient.responses.create(
         model="gpt-4-1106-preview",
-        messages=[
+        input=[
             {
-                "role": "system",
-                "content": prompt
+                "role": "developer",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": prompt
+                    }
+                ]
             },
             {
                 "role": "user",
-                "content": promptString
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": promptString
+                    }
+                ]
             }
         ],
         temperature=0.75,
-        max_tokens=500,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
+        store=True
     )
 
-    anyChat = response.choices[0].message.content
+    anyChat = response.output_text
     return anyChat

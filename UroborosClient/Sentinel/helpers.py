@@ -1,3 +1,5 @@
+from collections import deque
+
 import UroborosClient.Gulliver.Comms as comm
 import UroborosClient.Sombra.helpers as som
 
@@ -162,9 +164,14 @@ def run_system_call(server, cmd, gameInfo, OAIClient):
 
 
 def antinomy(gameInfo, OAIClient):
-    if comm.any_is_awake():
+    awake = comm.any_is_awake()
+    if awake:
         state = comm.get_any_internal_state()
         if state:
+            # Update task lists from WebSocket client
+            gameInfo['completedTasks'] = deque(comm.get_completed_tasks(), maxlen=10)
+            gameInfo['failedTasks'] = deque(comm.get_failed_tasks(), maxlen=15)
+
             gameLinesBuffer = gameInfo['gameLinesBuffer']
             completedTasks = gameInfo['completedTasks']
             failedTasks = gameInfo['failedTasks']
@@ -172,7 +179,7 @@ def antinomy(gameInfo, OAIClient):
             promptString = 'Chat log:\n' + '\n'.join(gameLinesBuffer) + '\n' + state + '\n'
             promptString += 'Tareas actualmente completadas: ' + ', '.join(completedTasks) + '\n'
             promptString += 'Tareas fallidas que son muy complicadas: ' + ', '.join(failedTasks)
-            
+
             mind, instructions = som.executive_function(promptString, OAIClient)
 
             taskSect = mind.find('Tarea:')
@@ -206,7 +213,6 @@ def antinomy(gameInfo, OAIClient):
                             comm.send_command('chat ' + anyChat)
                         else:
                             comm.send_command(command)
-                    gameInfo['completedTasks'].append(taskString)
             except SyntaxError:
                 gameInfo['failedTasks'].append(taskString)
 

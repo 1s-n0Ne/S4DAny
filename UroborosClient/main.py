@@ -3,6 +3,8 @@ import re
 import os
 import sys
 
+from UroborosClient.Gulliver.Comms import initialize_puppeteer_connection, cleanup_puppeteer_connection
+
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
 
@@ -122,50 +124,65 @@ def main():
     severRCON.connect()
     severRCON.timeout = 100
     print('RCON connected')
-    with open('../Server/logs/latest.log') as f:
-        # Always read the server console.
-        previousContent = f.read()
 
-        while True:
-            content = f.read()
+    print('Starting Puppeteer WebSocket connection')
+    if initialize_puppeteer_connection():
+        print('Puppeteer connected')
+    else:
+        print('Failed to connect to Puppeteer. Baritone commands not available')
 
-            if previousContent in content:
-                content.replace(previousContent, '')
+    try:
+        with open('../Server/logs/latest.log') as f:
+            # Always read the server console.
+            previousContent = f.read()
 
-                # New lines in the console
-                if content != '':
-                    anyFiltered = filter_any(content,
-                                             game_info_pattern,
-                                             chat_pattern,
-                                             FirstTime)
+            while True:
+                content = f.read()
 
-                    _, gameLines = get_new_lines(content,
+                if previousContent in content:
+                    content.replace(previousContent, '')
+
+                    # New lines in the console
+                    if content != '':
+                        anyFiltered = filter_any(content,
                                                  game_info_pattern,
                                                  chat_pattern,
-                                                 FirstTime,
-                                                 1)
-                    FirstTime, logLines = get_new_lines(content,
-                                                        system_info_pattern,
-                                                        chat_pattern,
-                                                        FirstTime,
-                                                        2)
+                                                 FirstTime)
 
-                    gameInfo['gameLinesBuffer'].extend(gameLines)
-                    gameInfo['logLinesBuffer'].extend(logLines)
+                        _, gameLines = get_new_lines(content,
+                                                     game_info_pattern,
+                                                     chat_pattern,
+                                                     FirstTime,
+                                                     1)
+                        FirstTime, logLines = get_new_lines(content,
+                                                            system_info_pattern,
+                                                            chat_pattern,
+                                                            FirstTime,
+                                                            2)
 
-                    try:
-                        parse_commands(severRCON, gameLines, listeners, gameInfo, OAIClient)
-                    except Exception:
-                        traceback.print_exc()
+                        gameInfo['gameLinesBuffer'].extend(gameLines)
+                        gameInfo['logLinesBuffer'].extend(logLines)
 
-                    if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry,
-                                                                  CALLS_WINDOW,
-                                                                  MAX_CALLS_PER_MINUTE):
-                        antinomy(gameInfo, OAIClient)
+                        try:
+                            parse_commands(severRCON, gameLines, listeners, gameInfo, OAIClient)
+                        except Exception:
+                            traceback.print_exc()
 
-            previousContent = f.read()
-            time.sleep(0.25)
+                        if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry,
+                                                                      CALLS_WINDOW,
+                                                                      MAX_CALLS_PER_MINUTE):
+                            antinomy(gameInfo, OAIClient)
 
+                previousContent = f.read()
+                time.sleep(0.25)
+    except KeyboardInterrupt:
+        print('\nShutting down')
+    finally:
+        print('Closing Puppeteer connection')
+        cleanup_puppeteer_connection()
+        print('Closing RCON connection')
+        severRCON.disconnect()
+        print('Uroboros shutdown complete')
 
 if __name__ == '__main__':
     main()
