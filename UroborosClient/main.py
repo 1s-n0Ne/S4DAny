@@ -10,6 +10,7 @@ sys.path.append(cwd + '/..')
 
 import traceback
 from openai import OpenAI
+from anthropic import Anthropic
 
 from collections import deque
 
@@ -115,8 +116,9 @@ def main():
     # Initialize the calls registry
     api_calls_registry = deque(maxlen=MAX_CALLS_PER_MINUTE)
 
-    print('Starting OpenAI backend')
-    OAIClient = OpenAI()
+    print('Starting LLM backend')
+    # OAIClient = OpenAI()
+    LLMClient = Anthropic()
     print('Backend started!')
 
     print('Starting RCON connection')
@@ -164,14 +166,14 @@ def main():
                         gameInfo['logLinesBuffer'].extend(logLines)
 
                         try:
-                            parse_commands(severRCON, gameLines, listeners, gameInfo, OAIClient)
+                            parse_commands(severRCON, gameLines, listeners, gameInfo, LLMClient)
                         except Exception:
                             traceback.print_exc()
 
                         if len(anyFiltered) > 0 and can_make_api_call(api_calls_registry,
                                                                       CALLS_WINDOW,
                                                                       MAX_CALLS_PER_MINUTE):
-                            antinomy(gameInfo, OAIClient)
+                            antinomy(gameInfo, LLMClient)
 
                 previousContent = f.read()
                 time.sleep(0.25)

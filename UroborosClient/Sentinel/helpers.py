@@ -1,7 +1,7 @@
 from collections import deque
 
 import UroborosClient.Gulliver.Comms as comm
-import UroborosClient.Sombra.helpers as som
+import UroborosClient.Sombra.thinkers.Anthropic as som
 
 import re
 
@@ -86,7 +86,7 @@ def assert_command(commandRes):
     return True
 
 
-def run_system_call(server, cmd, gameInfo, OAIClient):
+def run_system_call(server, cmd, gameInfo, LLMClient):
 
     # COMMAND PARSE TREE EXAMPLE
     # [('select sombra', ['get mindstate']), ('select gulliver', [('baritone', ['goal Stone'])])]
@@ -130,7 +130,7 @@ def run_system_call(server, cmd, gameInfo, OAIClient):
                     promptString += 'Tareas actualmente completadas: ' + ', '.join(completedTasks) + '\n'
                     promptString += 'Tareas fallidas que son muy complicadas: ' + ', '.join(failedTasks)
 
-                    res = som.sombra_mind_state(promptString, OAIClient)
+                    res = som.sombra_mind_state(promptString, LLMClient)
 
                     dumpHeader = 'tellraw @a ["",{"text":"===","bold":true,"color":"blue"},{"text":" SOMBRA MINDSTATE DUMP"},{"text":" ===","bold":true,"color":"blue"},{"text":"\\n "}]'
                     dumpFoot = 'tellraw @a ["",{"text":"=========================","bold":true,"color":"blue"},{"text":"\\n "}]'
@@ -163,7 +163,7 @@ def run_system_call(server, cmd, gameInfo, OAIClient):
     return False
 
 
-def antinomy(gameInfo, OAIClient):
+def antinomy(gameInfo, LLMClient):
     awake = comm.any_is_awake()
     if awake:
         state = comm.get_any_internal_state()
@@ -180,7 +180,7 @@ def antinomy(gameInfo, OAIClient):
             promptString += 'Tareas actualmente completadas: ' + ', '.join(completedTasks) + '\n'
             promptString += 'Tareas fallidas que son muy complicadas: ' + ', '.join(failedTasks)
 
-            mind, instructions = som.executive_function(promptString, OAIClient)
+            mind, instructions = som.executive_function(promptString, LLMClient)
 
             taskSect = mind.find('Tarea:')
             taskString = mind[taskSect + 6:].removeprefix(' ').replace('.', '').lower()
@@ -204,8 +204,10 @@ def antinomy(gameInfo, OAIClient):
                 if len(commands) > 0:
                     for command in commands:
                         if command == 'chat':
-                            egoPrompt = 'Chat log:\n' + '\n'.join(gameLinesBuffer) + '\n' + mind
-                            anyChat = som.call_ego(egoPrompt, OAIClient)
+                            cot_start = mind.find('Razonamiento')
+                            cot_end = mind.find('Tareas')
+                            egoPrompt = 'Chat log:\n' + '\n'.join(gameLinesBuffer) + '\n' + mind[cot_start:cot_end-1]
+                            anyChat = som.call_ego(egoPrompt, LLMClient)
                             anyChat = anyChat.removeprefix('Chat: ')
 
                             print('[Ego] Voice:')
@@ -217,7 +219,7 @@ def antinomy(gameInfo, OAIClient):
                 gameInfo['failedTasks'].append(taskString)
 
 
-def parse_commands(server, logLines, listeners, gameInfo, OAIClient):
+def parse_commands(server, logLines, listeners, gameInfo, LLMClient):
     if len(logLines) == 0 or 'system call' not in logLines[-1].lower():
         return
     # Perform the search
@@ -236,7 +238,7 @@ def parse_commands(server, logLines, listeners, gameInfo, OAIClient):
         if len(cmdList) == 0:
             show_failure_effect(server, username)
         for cmd in cmdList:
-            res = run_system_call(server, cmd, gameInfo, OAIClient)
+            res = run_system_call(server, cmd, gameInfo, LLMClient)
             if res:
                 show_success_effects(server, username)
             else:
