@@ -134,34 +134,32 @@ async function mine(bot, blockNames, targetCount) {
 
         log.info(`Starting a batch. Mining ${harvestableTargets.length} targets. Presumably ${targetCount-totalMined-harvestableTargets.length} left`)
 
-        // Set up a safety timeout for collectBlock
-        let collectCompleted = false
-        const safetyTimeout = setTimeout(() => {
-            if (!collectCompleted) {
-                log.warn('Mining taking too long, likely stuck')
-                // Force stop any ongoing collection
-                if (bot.pathfinder) {
-                    bot.pathfinder.setGoal(null)
-                }
-            }
-        }, 30000) // 30 second safety timeout
-
         // Don't do batch. Do one by one. Batch
         for (let target of harvestableTargets) {
                 try {
+                    // Set up a safety timeout for collectBlock
+                    let collectCompleted = false
+                    const safetyTimeout = setTimeout(() => {
+                        if (!collectCompleted) {
+                            log.warn('Mining taking too long, likely stuck')
+                            // Force stop any ongoing collection
+                            if (bot.pathfinder) {
+                                bot.pathfinder.setGoal(null)
+                            }
+                        }
+                    }, 30000) // 30 second safety timeout
+
                     // Collect the single block
                     await bot.collectBlock.collect([target]) // Note: wrap in array
                     totalMined += 1
                     log.info(`Mined 1 block. Total: ${totalMined}/${targetCount}`)
+
+                    collectCompleted = true
+                    clearTimeout(safetyTimeout)
                 } catch (error) {
                     log.warn(`Failed to collect block at ${target.position}: ${error.message}`)
-                    if (error.message.includes('dig') || error.message.includes('harvest')) {
-                        throw new Error(`Cannot mine blocks - tool requirement issue: ${error.message}`)
-                    }
                 }
         }
-        collectCompleted = true
-        clearTimeout(safetyTimeout)
     }
 
     // Final check - if we mined nothing and were asked to mine something, that's a failure

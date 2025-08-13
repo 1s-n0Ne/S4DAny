@@ -9,14 +9,6 @@ const log = createModuleLogger('Hunting')
 async function hunt(bot, mobType, maxCount = null) {
     log.info(`Starting hunt for ${mobType}${maxCount ? ` (max: ${maxCount})` : ' (all nearby)'}`)
 
-    // Equip combat gear at the start
-    try {
-        await armor.equipSword(bot)
-        await armor.equipShield(bot)
-    } catch (error) {
-        log.error(`Failed to equip combat gear: ${error.message}`)
-    }
-
     let hunted = 0
     let exploreAttempts = 0
     const maxExploreAttempts = 5
@@ -103,6 +95,12 @@ async function hunt(bot, mobType, maxCount = null) {
                 log.error(`Failed to hunt ${mobType}: ${error.message}`)
 
                 // Stop current attack if any
+                try {
+                    await armor.equipSword(bot)
+                    await armor.equipShield(bot)
+                } catch (error) {
+                    log.error(`Failed to equip combat gear: ${error.message}`)
+                }
                 await bot.pvp.stop()
 
                 // If we died, break out of the hunt

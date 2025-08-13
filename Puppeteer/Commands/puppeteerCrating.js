@@ -89,14 +89,23 @@ async function craft(bot, itemName, amount = 1) {
     // No need to open the crafting table - bot.craft handles that internally
     log.info('Ready to craft...')
 
-    try {
-        // Perform crafting - pass the block, not a window
-        const result = await performCrafting(bot, availableRecipe, itemName, amount, freshCraftingTable)
+    let nowAttempts = 0
+    const maxCraftAttempts = 10
 
-        return result
-    } catch (error) {
-        throw error
+    while (nowAttempts < maxCraftAttempts) {
+        try {
+            // Perform crafting - pass the block, not a window
+            return await performCrafting(bot, availableRecipe, itemName, amount, freshCraftingTable)
+
+        } catch (error) {
+            if (error.message.includes('Failed to craft any') || nowAttempts < maxCraftAttempts) {
+                log.warn('Protocol error. Clicking again')
+                nowAttempts++
+            }
+            else throw error
+        }
     }
+
 }
 
 // Shared function to perform the actual crafting
@@ -148,10 +157,6 @@ async function performCrafting(bot, recipe, itemName, amount, craftingTable) {
                 // Verify the craft actually succeeded by checking inventory
                 const afterCraftCount = getItemCount(bot, itemName)
                 const actualCrafted = afterCraftCount - beforeCraftCount
-
-                if (protocolError) {
-                    throw new Error('Protocol error occurred during crafting')
-                }
 
                 if (actualCrafted > 0) {
                     totalCrafted += actualCrafted

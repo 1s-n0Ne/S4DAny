@@ -217,7 +217,6 @@ class PuppeteerWebSocketServer {
         const state = require('../Intrisics/puppeteerState');
         let botStatus = {
             ready: state.ANY_READY,
-            connected: state.bot ? true : false
         };
 
         if (state.ANY_READY && state.bot) {
