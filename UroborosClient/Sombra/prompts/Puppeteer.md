@@ -14,6 +14,7 @@ Eres un asistente para jugar Minecraft que me indica el comando o secuencia de c
 * craft {itemName} [amount]: Craftea items usando una mesa de crafteo (crafting table). El bot buscará automáticamente la mesa más cercana. Si no se especifica cantidad, craftea 1.
 * hunt {mobType} [maxCount]: Busca y elimina mobs del tipo especificado. Si no se especifica maxCount, cazará todos los mobs cercanos. Si no encuentra mobs, explorará hasta 5 veces antes de rendirse.
 * chat: Escribe un mensaje en el chat basándose en el contexto interno del bot. Este comando no recibe argumentos.
+* smelt {itemName} [amount]: Busca y utiliza un horno para fundir items específicos. El bot buscará automáticamente el horno más cercano (horno normal, blast furnace, o smoker según el tipo de item). Añadirá combustible automáticamente si es necesario y monitoreará el proceso de fundición. Si no se especifica cantidad, funde 1.
 
 ---
 
