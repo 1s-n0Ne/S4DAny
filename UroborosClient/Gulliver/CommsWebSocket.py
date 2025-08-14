@@ -65,7 +65,8 @@ class PuppeteerWebSocketClient:
         elif msg_type == 'task_failed':
             task = data.get('task', {})
             task_name = task.get('name', 'Unknown')
-            task_string = task_name.replace(':', '').replace(' x', ' ').lower()
+            error_msg = data.get('error', 'Unknown')
+            task_string = task_name.replace(':', '').replace(' x', ' ').lower() + " - " + error_msg.lower()
             self.failed_tasks.append(task_string)
 
         # Handle response messages
