@@ -1,6 +1,6 @@
 # S4D Any
 
-S4D Any is an advanced Minecraft bot system that combines **mineflayer** automation with **OpenAI's GPT models** to create an embodied AI agent capable of autonomous decision-making, social interaction, and complex task execution in Minecraft multiplayer environments.
+S4D Any is an advanced Minecraft bot system that combines **mineflayer** automation with **OpenAI's or Anthropic's LLMs** to create an embodied AI agent capable of autonomous decision-making, social interaction, and complex task execution in Minecraft multiplayer environments.
 
 ## Architecture
 
