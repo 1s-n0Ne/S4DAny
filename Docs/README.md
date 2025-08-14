@@ -60,9 +60,9 @@ pip install -r requirements.txt
 
 4. **Configure environment**
 ```bash
-# Set your OpenAI API key
+# Set your LLM API key
 export OPENAI_API_KEY="your-api-key-here"
-
+export ANTHROPIC_API_KEY="your-api-key-here"
 # Set RCON password for server communication
 export RCON_PASSWORD="your-rcon-password"
 ```
