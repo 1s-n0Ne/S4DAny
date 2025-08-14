@@ -14,6 +14,7 @@ const crafting = require('../Commands/puppeteerCrating')
 const explorer = require("../Commands/puppeteerExplorer")
 const following = require('../Commands/puppeteerFollowing')
 const hunting = require('../Commands/puppeteerHunting')
+const smelting = require('../Commands/puppeteerSmelting')
 
 // Function to process commands (used by both REST and console)
 const processCommand = (commandString, source = 'unknown') => {
@@ -267,6 +268,29 @@ const processCommand = (commandString, source = 'unknown') => {
                 }
             })
             return { success: true, message: `Crafting ${itemName} x${amount}` }
+        }
+
+        if (command === 'smelt') {
+            if (args.length < 2) {
+                log.warn('Smelt command requires item name')
+                return { success: false, error: 'Usage: smelt <item_name> [amount]' }
+            }
+
+            const itemName = args[1]
+            const amount = args.length >= 3 ? parseInt(args[2]) : 1
+
+            if (isNaN(amount) || amount <= 0) {
+                log.warn('Amount must be a positive number')
+                return { success: false, error: 'Amount must be a positive number' }
+            }
+
+            taskQueue.enqueue({
+                name: `smelt: ${itemName} x${amount}`,
+                execute: async () => {
+                    return await smelting.smelt(state.bot, itemName, amount)
+                }
+            })
+            return { success: true, message: `Smelting ${itemName} x${amount}` }
         }
 
         if (command === 'goto') {
