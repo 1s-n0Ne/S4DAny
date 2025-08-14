@@ -33,6 +33,7 @@ class BotState {
         this.isRetreating = false
         this.retreatStartTime = 0
 
+        // Following behaviour variables
         this.isFollowing = false
         this.followingTarget = null
         this.followingStartTime = 0
