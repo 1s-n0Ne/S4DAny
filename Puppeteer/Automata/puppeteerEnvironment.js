@@ -46,7 +46,7 @@ function getSortedEntities(bot) {
 
 function getNearbyBlocks(bot) {
     const nowPos = bot.entity.position
-    const octIterator = new OctahedronIterator(nowPos,16)
+    const octIterator = new OctahedronIterator(nowPos,32)
 
     let nbBlocks = new Set(String())
 

@@ -82,9 +82,9 @@ const initBot = () => {
             state.bot.chat(`\n${healthInfo}`)
             log.info(`Health query from ${username}: ${healthInfo}`)
         }
-        if (message.includes('state')) {
-            state.bot.chat(environment.getInternalState(state.bot))
-            log.info(`State query from ${username}`)
+        if (message === 'state') {
+            state.bot.chat('Internal state logged.')
+            log.info(`State query from ${username}:\n${environment.getInternalState(state.bot)}`)
         }
     })
 
@@ -92,6 +92,7 @@ const initBot = () => {
         if (state.bot.pathfinder.isMoving() ||
             state.bot.pathfinder.isMining() ||
             state.bot.pathfinder.isBuilding() ||
+            taskQueue.currentTask != null ||
             taskQueue.isProcessing) {
             state.updateActivity()
             return
