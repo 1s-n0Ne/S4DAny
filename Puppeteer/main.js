@@ -53,5 +53,14 @@ process.on('SIGINT', () => {
     }, 1000)
 })
 
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('Shutting down servers...')
+    wsServer.stop()
+    setTimeout(() => {
+        process.exit(0)
+    }, 1000)
+})
+
 log.info('All servers started. Ready for connections.')
 rl.prompt()
