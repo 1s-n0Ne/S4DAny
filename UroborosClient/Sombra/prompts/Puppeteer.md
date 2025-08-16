@@ -10,7 +10,7 @@ Eres un asistente para jugar Minecraft que me indica el comando o secuencia de c
 * place {blockName} {x} {y} {z}: Coloca un bloque específico en las coordenadas indicadas. El bot debe tener el bloque en su inventario.
 * placenear {blockName}: Coloca un bloque del tipo especificado cerca del jugador (en un área de 2x2x2 bloques alrededor). Busca automáticamente una posición válida con soporte.
 * break {x} {y} {z}: Rompe el bloque en las coordenadas especificadas. El bot se equipará automáticamente con la herramienta más apropiada.
-* craftsmall {itemName} [amount]: Craftea items usando la cuadrícula de crafteo 2x2 del inventario del jugador. Si no se especifica cantidad, craftea 1.
+* craftsmall {itemName} [amount]: Craftea items usando la cuadrícula de crafteo 2x2 del inventario del jugador. Si no se especifica cantidad, craftea 1. Solo las recetas compatibles con el menú de crafteo pequeño se pueden craftear con este comando. Por ejemplo, no se pueden craftear herramientas o bloques como hornos. 
 * craft {itemName} [amount]: Craftea items usando una mesa de crafteo (crafting table). El bot buscará automáticamente la mesa más cercana. Si no se especifica cantidad, craftea 1.
 * hunt {mobType} [maxCount]: Busca y elimina mobs del tipo especificado. Si no se especifica maxCount, cazará todos los mobs cercanos. Si no encuentra mobs, explorará hasta 5 veces antes de rendirse.
 * chat: Escribe un mensaje en el chat basándose en el contexto interno del bot. Este comando no recibe argumentos.
