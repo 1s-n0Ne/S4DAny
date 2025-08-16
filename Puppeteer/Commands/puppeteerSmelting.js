@@ -1,4 +1,4 @@
-// puppeteerSmelting.js - Furnace interaction and smelting functionality
+// puppeteerSmelting.js - Furnace interaction and smelting functionality with dynamic smeltability check
 const explorer = require('./puppeteerExplorer')
 const state = require('../Intrisics/puppeteerState')
 const smeltUtil = require('../Intrisics/puppeteerSmeltUtil')
@@ -81,23 +81,7 @@ function findBestFuel(bot, requiredBurnTime) {
     return fuelOptions[0].item
 }
 
-// Helper function to check if an item can be smelted
-function isSmeltable(itemName) {
-    // Get recipe information from minecraft-data
-    const Recipe = require('prismarine-recipe')(state.bot.version).Recipe
-    const itemType = state.mcData.itemsByName[itemName]
-
-    if (!itemType) return false
-
-    // Check if the item name contains any of the smeltable types
-    return smeltUtil.SMELTABLE_ITEMS.some(smeltable =>
-        itemName.includes(smeltable) ||
-        (smeltable.includes('log') && itemName.includes('log')) ||
-        (smeltable.includes('ore') && itemName.includes('ore'))
-    )
-}
-
-// Helper function to get smelting result
+// Helper function to get smelting result (kept for reference, but not used for validation anymore)
 function getSmeltingResult(itemName) {
     // Check for logs -> charcoal
     if (itemName.includes('log') || itemName.includes('wood') ||
@@ -115,18 +99,14 @@ function getSmeltingResult(itemName) {
     return null
 }
 
-// Main smelting function
+// Main smelting function with dynamic smeltability check
 async function smelt(bot, itemName, amount = 1) {
     log.info(`Attempting to smelt ${amount} ${itemName}`)
 
-    // Validate item exists and is smeltable
+    // Validate item exists
     const itemType = state.mcData.itemsByName[itemName]
     if (!itemType) {
         throw new Error(`Unknown item: ${itemName}`)
-    }
-
-    if (!isSmeltable(itemName)) {
-        throw new Error(`${itemName} cannot be smelted`)
     }
 
     // Check if we have the items to smelt
@@ -150,7 +130,7 @@ async function smelt(bot, itemName, amount = 1) {
 
     let targetFurnace = furnaceBlock
 
-    // Prefer blast furnace for ores, smoker for food
+    // Prefer blast furnace for ores, smoker for food (heuristic)
     if (itemName.includes('ore') || itemName.includes('raw_iron') ||
         itemName.includes('raw_gold') || itemName.includes('raw_copper')) {
         targetFurnace = blastFurnaceBlock || furnaceBlock
@@ -186,7 +166,7 @@ async function smelt(bot, itemName, amount = 1) {
 
         log.info(`Furnace state - Fuel: ${currentFuel?.name || 'empty'}, Input: ${currentInput?.name || 'empty'}, Output: ${currentOutput?.name || 'empty'}`)
 
-        // Calculate required burn time
+        // Calculate required burn time (assume all items are smeltable for now)
         const requiredBurnTime = amount * smeltUtil.SMELTING_TIME
         let availableBurnTime = 0
 
@@ -203,7 +183,7 @@ async function smelt(bot, itemName, amount = 1) {
             log.info(`Fuel slot has ${currentFuel.count} ${currentFuel.name} (${currentFuel.count * fuelValue} ticks)`)
         }
 
-        // Add fuel if needed (FIXED VERSION)
+        // Add fuel if needed
         if (availableBurnTime < requiredBurnTime) {
             const neededBurnTime = requiredBurnTime - availableBurnTime
             log.info(`Need ${neededBurnTime} more ticks of fuel`)
@@ -214,8 +194,8 @@ async function smelt(bot, itemName, amount = 1) {
             }
 
             const fuelValue = getFuelValue(fuelItem.name)
-            const fuelNeeded = Math.ceil(neededBurnTime / fuelValue) // This calculates how many items we need
-            const fuelToAdd = Math.min(fuelNeeded, fuelItem.count) // Don't exceed what we have
+            const fuelNeeded = Math.ceil(neededBurnTime / fuelValue)
+            const fuelToAdd = Math.min(fuelNeeded, fuelItem.count)
 
             log.info(`Adding ${fuelToAdd} ${fuelItem.name} as fuel (${fuelToAdd * fuelValue} ticks total)`)
             await furnace.putFuel(fuelItem.type, null, fuelToAdd)
@@ -224,22 +204,46 @@ async function smelt(bot, itemName, amount = 1) {
             await new Promise(resolve => setTimeout(resolve, 500))
         }
 
-        // Put items to smelt
-        log.info(`Adding ${amount} ${itemName} to smelt`)
+        // Put items to smelt and test if they're actually smeltable
+        log.info(`Adding ${amount} ${itemName} to test smeltability`)
         const itemToSmelt = itemsInInventory[0]
         await furnace.putInput(itemToSmelt.type, null, amount)
 
-        // Wait for smelting to start
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Wait for smelting to potentially start
+        await new Promise(resolve => setTimeout(resolve, 2000))
 
-        // IMPROVED MONITORING SECTION STARTS HERE
-        // Monitor smelting progress with furnace stop detection
+        // Check if smelting actually started
+        const isActuallySmelting = furnace.progress > 0 || (furnace.fuel > 0 && furnace.inputItem())
+
+        if (!isActuallySmelting) {
+            // Item is not smeltable, remove it from furnace
+            log.warn(`${itemName} is not smeltable, removing from furnace`)
+
+            try {
+                // Try to take the items back
+                const inputItem = furnace.inputItem()
+                if (inputItem && inputItem.count > 0) {
+                    await furnace.takeInput()
+                    log.info(`Removed ${inputItem.count} ${inputItem.name} from furnace input`)
+                }
+            } catch (takeError) {
+                log.error(`Failed to remove items from furnace: ${takeError.message}`)
+            }
+
+            // Close furnace and fail
+            furnace.close()
+            throw new Error(`${itemName} cannot be smelted`)
+        }
+
+        log.info(`${itemName} is smeltable, proceeding with smelting process`)
+
+        // SMELTING MONITORING SECTION
         let smeltedCount = 0
         const startTime = Date.now()
         const maxWaitTime = (amount * smeltUtil.SMELTING_TIME * 50) + 10000 // Convert ticks to ms, add buffer
-        let lastProgress = 0 // Track progress to detect if furnace stopped
-        let stuckCounter = 0 // Counter for how many times progress hasn't changed
-        const maxStuckChecks = 3 // How many times we allow no progress before considering it stuck
+        let lastProgress = 0
+        let stuckCounter = 0
+        const maxStuckChecks = 3
 
         log.info(`Starting smelting monitor. Expecting ${amount} items over ${maxWaitTime/1000} seconds`)
 
@@ -251,8 +255,8 @@ async function smelt(bot, itemName, amount = 1) {
             }
 
             // Check furnace state
-            const currentProgress = furnace.progress || 0 // Current smelting progress (0-1)
-            const currentFuel = furnace.fuel || 0 // Remaining fuel ticks
+            const currentProgress = furnace.progress || 0
+            const currentFuel = furnace.fuel || 0
             const inputItem = furnace.inputItem()
             const outputItem = furnace.outputItem()
 
@@ -260,18 +264,15 @@ async function smelt(bot, itemName, amount = 1) {
 
             // Check if furnace has stopped smelting
             const hasStopped = (
-                currentProgress === 0 && // No current progress
-                currentFuel === 0 && // No fuel remaining
-                inputItem && inputItem.count > 0 // Still has items to smelt
+                currentProgress === 0 &&
+                currentFuel === 0 &&
+                inputItem && inputItem.count > 0
             )
 
             if (hasStopped) {
                 log.warn('Furnace has stopped smelting but still has items to process!')
-                log.info('Possible causes: ran out of fuel, furnace blocked, or fuel slot full')
 
-                // Try to diagnose and fix the issue
                 try {
-                    // Check if we need more fuel
                     const remainingItems = inputItem.count
                     const remainingBurnTime = remainingItems * smeltUtil.SMELTING_TIME
 
@@ -287,49 +288,45 @@ async function smelt(bot, itemName, amount = 1) {
                             log.info(`Adding ${fuelToAdd} ${fuelItem.name} to restart smelting`)
                             await furnace.putFuel(fuelItem.type, null, fuelToAdd)
 
-                            // Wait for furnace to restart
                             await new Promise(resolve => setTimeout(resolve, 2000))
-                            continue // Go back to monitoring
+                            continue
                         } else {
                             log.error('No more fuel available to continue smelting')
-                            break // Exit the loop
+                            break
                         }
                     } else {
                         log.error('Furnace stopped for unknown reasons (has fuel but not smelting)')
-                        break // Exit the loop
+                        break
                     }
                 } catch (error) {
                     log.error(`Failed to restart furnace: ${error.message}`)
-                    break // Exit the loop
+                    break
                 }
             }
 
-            // Check for progress stagnation (furnace might be stuck)
+            // Check for progress stagnation
             if (currentProgress === lastProgress && currentProgress > 0) {
                 stuckCounter++
                 if (stuckCounter >= maxStuckChecks) {
                     log.warn(`Furnace appears stuck at ${(currentProgress * 100).toFixed(1)}% progress`)
-                    log.info('Furnace may be blocked or experiencing issues, finishing with current output...')
                     break
                 }
             } else {
-                stuckCounter = 0 // Reset counter if progress changed
+                stuckCounter = 0
             }
             lastProgress = currentProgress
 
             // Check output slot and collect items
             if (outputItem && outputItem.count > 0) {
                 try {
-                    // Take the output
                     const taken = await furnace.takeOutput()
                     if (taken && taken.count > 0) {
                         smeltedCount += taken.count
                         log.info(`Collected ${taken.count} ${taken.name}. Total: ${smeltedCount}/${amount}`)
-                        stuckCounter = 0 // Reset stuck counter on successful collection
+                        stuckCounter = 0
                     }
                 } catch (error) {
                     log.error(`Failed to take output: ${error.message}`)
-                    // Continue monitoring even if we can't take output this time
                 }
             }
 
@@ -337,7 +334,7 @@ async function smelt(bot, itemName, amount = 1) {
             await new Promise(resolve => setTimeout(resolve, 2000))
         }
 
-        // Final collection attempt in case there are items in output slot
+        // Final collection attempt
         try {
             const finalOutput = furnace.outputItem()
             if (finalOutput && finalOutput.count > 0) {
@@ -351,12 +348,11 @@ async function smelt(bot, itemName, amount = 1) {
         } catch (error) {
             log.warn(`Failed final output collection: ${error.message}`)
         }
-        // IMPROVED MONITORING SECTION ENDS HERE
 
         // Close the furnace
         furnace.close()
 
-        const resultName = getSmeltingResult(itemName)
+        const resultName = getSmeltingResult(itemName) || 'smelted item'
 
         // Check if we completed the full amount
         if (smeltedCount < amount) {
