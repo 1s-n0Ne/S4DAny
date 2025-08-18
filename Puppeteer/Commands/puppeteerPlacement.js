@@ -69,6 +69,7 @@ async function place(bot, blockName, x, y, z) {
         log.info(`Moving closer to placement position (distance: ${distance.toFixed(2)})`)
 
         try {
+            bot.pathfinder.setMovements(state.movements)
             bot.pathfinder.setGoal(new goals.GoalNear(targetX, targetY, targetZ, 3))
 
             // Wait for pathfinding to complete
@@ -310,6 +311,7 @@ async function breakBlock(bot, x, y, z) {
         log.info(`Moving closer to target block (distance: ${distance.toFixed(2)})`)
 
         try {
+            bot.pathfinder.setMovements(state.movements)
             bot.pathfinder.setGoal(new goals.GoalNear(targetX, targetY, targetZ, 3))
 
             // Wait for pathfinding to complete
