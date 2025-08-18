@@ -47,6 +47,7 @@ async function moveToBlock(bot, block) {
     log.info(`Moving to ${block.name} at (${pos.x}, ${pos.y}, ${pos.z})`)
 
     // Set goal to get near the block (within 3 blocks)
+    bot.pathfinder.setMovements(state.movements)
     bot.pathfinder.setGoal(new goals.GoalNear(pos.x, pos.y, pos.z, 3))
 
     // Wait for pathfinding to complete
@@ -150,7 +151,7 @@ async function randomExplore(bot, minDist, maxDist) {
         const zOff = randomInt(-1, 1) * randomInt(minDist, maxDist)
 
         const newPos = bot.entity.position.offset(xOff, 0, zOff)
-
+        bot.pathfinder.setMovements(state.movements)
         bot.pathfinder.setGoal(new goals.GoalNear(newPos.x, newPos.y, newPos.z, 2))
 
         const onGoalReached = () => {

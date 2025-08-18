@@ -38,8 +38,7 @@ async function handleWandering(bot) {
             state.targetMob = mob
 
             // Start following the mob
-            const defaultMove = new Movements(bot)
-            bot.pathfinder.setMovements(defaultMove)
+            bot.pathfinder.setMovements(state.movements)
 
             const goal = new goals.GoalFollow(mob, 2) // Follow within 2 blocks
             bot.pathfinder.setGoal(goal, true)
@@ -89,8 +88,7 @@ async function handleItemPickup(bot) {
             state.targetItem = item
 
             try {
-                const defaultMove = new Movements(bot)
-                bot.pathfinder.setMovements(defaultMove)
+                bot.pathfinder.setMovements(state.movements)
 
                 const goal = new goals.GoalBlock(item.position.x, item.position.y, item.position.z)
                 bot.pathfinder.setGoal(goal, true)
@@ -203,9 +201,10 @@ async function handleCombat(bot) {
         const retreatLocation = findSafeRetreatLocation(bot)
         if (retreatLocation) {
             try {
-                const defaultMove = new Movements(bot)
-                defaultMove.canDig = false
-                bot.pathfinder.setMovements(defaultMove)
+                const retreatMovements = new Movements(bot)
+                retreatMovements.canDig = false
+                retreatMovements.allow1by1towers = false
+                bot.pathfinder.setMovements(retreatMovements)
 
                 const goal = new goals.GoalBlock(retreatLocation.x, retreatLocation.y, retreatLocation.z)
                 bot.pathfinder.setGoal(goal, true)

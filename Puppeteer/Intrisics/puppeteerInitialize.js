@@ -54,6 +54,14 @@ const initBot = () => {
         state.ANY_READY = true
         state.mcData = require('minecraft-data')(state.bot.version)
 
+        // Bot allowed movements configuration
+        state.movements = new Movements(state.bot)
+        state.movements.allow1by1towers = false
+        state.movements.canOpenDoors = true
+
+        // Set movements for collect block plugin
+        state.bot.collectBlock.movements = state.movements
+
         log.info('Bot spawned successfully')
         log.info('Enabling auto-eat...')
         state.bot.autoEat.enableAuto()

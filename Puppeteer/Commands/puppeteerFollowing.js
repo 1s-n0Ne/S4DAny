@@ -133,9 +133,10 @@ async function followPlayer(bot, playerName) {
 
             // Continue following - update pathfinding goal
             try {
-                const defaultMove = new Movements(bot)
-                defaultMove.canDig = false // Don't dig while following
-                bot.pathfinder.setMovements(defaultMove)
+                const followMovements = new Movements(bot)
+                followMovements.canDig = false // Don't dig while following
+                followMovements.allow1by1towers = false
+                bot.pathfinder.setMovements(followMovements)
 
                 // Use GoalFollow for smooth following behavior, stay 3-4 blocks away
                 const goal = new goals.GoalFollow(targetPlayer, 3)
